@@ -39,6 +39,12 @@
                 <label for="{{ form.auto_readonly.id_for_label }}">{{ form.auto_readonly.label }} {% include "events/_required_badge.html" with field=form.auto_readonly %}</label>
                 <span class="muted small">{{ form.auto_readonly.help_text }}</span>
             </p>
+            {{ form.feedback_url.errors }}
+            <p class="form-row">
+                <label for="{{ form.feedback_url.id_for_label }}">{{ form.feedback_url.label }}</label>
+                {{ form.feedback_url }}
+                <span class="muted small">{{ form.feedback_url.help_text }}</span>
+            </p>
         </details>
         <h2>Listen</h2>
         <p class="muted">Listen ein- oder ausblenden und am Griff in die gewünschte Reihenfolge ziehen. Alternativ die Pfeiltasten verwenden. Ausgeblendete Listen behalten ihre Einträge.</p>

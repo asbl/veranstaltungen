@@ -24,7 +24,7 @@ from django.utils import timezone
 
 from . import bgg
 from .account_forms import RequestLoginCodeOrSignupForm, prune_unconfirmed_accounts
-from .forms import GameBulkForm, GameEntryForm
+from .forms import EventDayFormSet, EventForm, GameBulkForm, GameEntryForm
 from .models import (
     Answer,
     Attendance,
@@ -3686,3 +3686,49 @@ class OwnEntryMarkerTests(TestCase):
         response = self.client.get(f"/{self.event.pk}/")
         self.assertContains(response, "Du bist Springer")
         self.assertNotContains(response, "Du bist eingetragen")
+
+
+class FeedbackUrlTests(TestCase):
+    """Event.feedback_url: optionales Feedback-Dokument, prominent im Kopf der
+    Veranstaltungsseite verlinkt; nur http/https erlaubt."""
+
+    def setUp(self):
+        self.owner = User.objects.create(username="fb_orga", email="fb_orga@example.com")
+        self.event = Event.objects.create(title="FB Event", created_by=self.owner, planning_enabled=True)
+        self.client.force_login(self.owner)
+
+    def _formset_data(self, **extra):
+        prefix = EventDayFormSet.get_default_prefix()
+        data = {"title": self.event.title, "planning_enabled": "on",
+                f"{prefix}-TOTAL_FORMS": "0", f"{prefix}-INITIAL_FORMS": "0",
+                f"{prefix}-MIN_NUM_FORMS": "0", f"{prefix}-MAX_NUM_FORMS": "1000"}
+        data.update(extra)
+        return data
+
+    def test_feedback_link_shown_prominently_in_event_header(self):
+        self.event.feedback_url = "https://notes.example.org/p/abc-123"
+        self.event.save(update_fields=["feedback_url"])
+        response = self.client.get(f"/{self.event.pk}/")
+        self.assertContains(response, 'class="btn feedback-link"')
+        self.assertContains(response, 'href="https://notes.example.org/p/abc-123"')
+        self.assertContains(response, "Feedback-Dokument öffnen")
+        self.assertContains(response, 'rel="noopener noreferrer"')
+
+    def test_no_feedback_link_without_url(self):
+        response = self.client.get(f"/{self.event.pk}/")
+        self.assertNotContains(response, "feedback-link")
+
+    def test_form_saves_https_url(self):
+        url = "https://notes.mailbox.org/p/3950087b-e149-4a74-852e-9feca502d0d5"
+        response = self.client.post(reverse("events:event_edit", args=[self.event.pk]),
+                                    self._formset_data(feedback_url=url))
+        self.assertEqual(response.status_code, 302)
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.feedback_url, url)
+
+    def test_form_rejects_non_http_scheme(self):
+        response = self.client.post(reverse("events:event_edit", args=[self.event.pk]),
+                                    self._formset_data(feedback_url="javascript:alert(1)"))
+        self.assertEqual(response.status_code, 200)
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.feedback_url, "")

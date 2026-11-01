@@ -66,7 +66,7 @@ class EventForm(forms.ModelForm):
 
     class Meta:
         model = Event
-        fields = ["title", "description", "location", "planning_enabled", "allow_known_persons_signup", "auto_readonly"]
+        fields = ["title", "description", "location", "planning_enabled", "allow_known_persons_signup", "auto_readonly", "feedback_url"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

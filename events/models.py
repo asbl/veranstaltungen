@@ -4,6 +4,7 @@ import os
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from .attachments import attachment_path, validate_attachment, CONTENT_TYPES
@@ -77,6 +78,17 @@ class Event(models.Model):
             "Ist die Veranstaltung beendet (alle Tage liegen in der Vergangenheit), wird sie "
             "automatisch schreibgeschützt: alle Einträge bleiben einsehbar, Änderungen sind "
             "nur noch der Orga möglich."
+        ),
+    )
+    feedback_url = models.URLField(
+        "Feedback-Dokument (Link)",
+        max_length=500,
+        blank=True,
+        default="",
+        validators=[URLValidator(schemes=["http", "https"])],
+        help_text=(
+            "Optionaler Link zu einem Feedback-Dokument (z. B. Etherpad/Notes). "
+            "Wird prominent im Kopf der Veranstaltungsseite angezeigt. Nur http/https."
         ),
     )
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_events")

@@ -3,6 +3,13 @@
 {% block title %}{{ event.title }}{% endblock %}
 {% block content %}
     <h1>{{ event.title }}</h1>
+    {% if event.feedback_url %}
+        <p class="feedback-link-row">
+            <a class="btn feedback-link" href="{{ event.feedback_url }}" target="_blank" rel="noopener noreferrer">
+                <i class="fa-solid fa-clipboard-list"></i>Feedback-Dokument öffnen
+            </a>
+        </p>
+    {% endif %}
     {% if event.is_readonly %}
         <div class="card">
             <p><i class="fa-solid fa-lock"></i> Diese Veranstaltung ist beendet und schreibgeschützt – alle Einträge bleiben einsehbar, können aber nicht mehr geändert werden.</p>

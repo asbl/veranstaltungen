@@ -561,6 +561,9 @@ section.feature > h2 {
   outline-offset: 2px;
 }
 
+.feedback-link-row { margin: 0.4rem 0 1rem; }
+.feedback-link { font-size: 1.05rem; padding: 0.6rem 1.2rem; }
+
 .btn.secondary {
   background: transparent;
   color: var(--color-accent);
