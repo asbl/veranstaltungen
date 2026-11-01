@@ -110,12 +110,19 @@ class Event(models.Model):
     @property
     def is_finished(self):
         """Veranstaltung ist beendet: mindestens ein Tag und alle Tage liegen
-        in der Vergangenheit. Veranstaltungen ohne Tage (z. B. reine
-        Planungsphasen) gelten nicht als beendet."""
+        in der Vergangenheit. Ein Tag am heutigen Datum zählt erst nach seiner
+        Endzeit als vorbei (ohne Endzeit erst ab dem Folgetag). Veranstaltungen
+        ohne Tage (z. B. reine Planungsphasen) gelten nicht als beendet."""
         days = list(self.days.all())
         if not days:
             return False
-        return max(day.date for day in days) < timezone.localdate()
+        now = timezone.localtime()
+        for day in days:
+            if day.date > now.date():
+                return False
+            if day.date == now.date() and (day.end_time is None or day.end_time > now.time()):
+                return False
+        return True
 
     @property
     def is_readonly(self):
@@ -166,13 +173,21 @@ def get_display_name(user):
 
 
 def _finished_event_ids():
-    """IDs der beendeten Veranstaltungen: mindestens ein Tag und alle Tage in
-    der Vergangenheit (gleiche Regel wie Event.is_finished, als Query für die
-    Nutzung in is_known_person)."""
-    today = timezone.localdate()
+    """IDs der beendeten Veranstaltungen: mindestens ein Tag und alle Tage
+    liegen in der Vergangenheit - ein Tag am heutigen Datum erst nach seiner
+    Endzeit (gleiche Regel wie Event.is_finished, als Query für die Nutzung in
+    is_known_person)."""
+    now = timezone.localtime()
+    today = now.date()
+    open_day = (
+        models.Q(days__date__gt=today)
+        | models.Q(days__date=today, days__end_time__isnull=True)
+        | models.Q(days__date=today, days__end_time__gt=now.time())
+    )
     return (
-        Event.objects.filter(days__date__lt=today)
-        .exclude(days__date__gte=today)
+        Event.objects.filter(days__isnull=False)
+        .exclude(open_day)
+        .distinct()
         .values("pk")
     )
 

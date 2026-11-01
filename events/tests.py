@@ -2884,6 +2884,34 @@ class KnownPersonModelTests(TestCase):
         self.assertFalse(event.is_finished)
         self.assertFalse(event.is_readonly)
 
+    def test_event_today_after_end_time_is_finished(self):
+        from datetime import timedelta
+
+        now = timezone.localtime()
+        event = Event.objects.create(title="KP Heute vorbei", created_by=self.owner, auto_readonly=True)
+        EventDay.objects.create(
+            event=event,
+            date=now.date(),
+            start_time=(now - timedelta(hours=2)).time(),
+            end_time=(now - timedelta(hours=1)).time(),
+        )
+        self.assertTrue(event.is_finished)
+        self.assertTrue(event.is_readonly)
+
+    def test_attendance_at_event_finished_today_makes_person_known(self):
+        from datetime import timedelta
+
+        now = timezone.localtime()
+        event = Event.objects.create(title="KP Heute gelaufen", created_by=self.owner)
+        EventDay.objects.create(
+            event=event,
+            date=now.date(),
+            start_time=(now - timedelta(hours=2)).time(),
+            end_time=(now - timedelta(hours=1)).time(),
+        )
+        Attendance.objects.create(event=event, user=self.person)
+        self.assertTrue(is_known_person(self.person))
+
     def test_event_with_only_past_days_is_finished_and_readonly(self):
         event = Event.objects.create(title="KP Gestern", created_by=self.owner, auto_readonly=True)
         EventDay.objects.create(event=event, date=_past_date())
