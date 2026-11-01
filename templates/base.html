@@ -1,0 +1,56 @@
+{% load static legal_tags %}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Veranstaltungen{% endblock %} · {{ site_settings.name|default:"Veranstaltungen" }}</title>
+    <link rel="stylesheet" href="{% static 'events/fontawesome/css/fontawesome.min.css' %}">
+    <link rel="stylesheet" href="{% static 'events/fontawesome/css/solid.min.css' %}">
+    <link rel="stylesheet" href="{% static 'events/css/style.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-inner">
+            <a class="brand" href="{% url 'events:event_list' %}">
+                {% if site_settings.logo %}
+                    <img src="{% url 'events:site_logo' %}" alt="{{ site_settings.name }}">
+                {% else %}
+                    <img src="{% static 'events/img/logo.svg' %}" alt="{{ site_settings.name|default:'Veranstaltungen' }}">
+                {% endif %}
+                <span>Veranstaltungen</span>
+            </a>
+            <nav>
+                <a href="{% url 'events:event_list' %}">Alle Veranstaltungen</a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'events:event_create' %}"><i class="fa-solid fa-plus"></i>Neue Veranstaltung</a>
+                {% endif %}
+            </nav>
+            <span class="spacer"></span>
+            <nav>
+                {% if user.is_staff %}<a href="{% url 'admin:index' %}"><i class="fa-solid fa-gauge"></i>Admin</a>{% endif %}
+                {% if user.is_authenticated %}
+                    <a href="{% url 'account_email' %}">{{ user }}</a>
+                    <a href="{% url 'account_logout' %}"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+                {% else %}
+                    <a href="{% url 'account_login' %}"><i class="fa-solid fa-right-to-bracket"></i>Login</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+    <main>
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+    {% legal_footer %}
+    <script src="{% static 'events/js/legal-dialogs.js' %}"></script>
+    <script src="{% static 'events/js/form-error-summary.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

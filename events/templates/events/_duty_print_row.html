@@ -1,0 +1,10 @@
+<tr class="{% if duty.spots_left %}is-open{% endif %}">
+    <td class="col-duty">
+        <span class="duty-title">{{ duty.title }}</span>
+        {% if show_time and duty.day or show_time and duty.start_time or show_time and duty.end_time %}
+            <span class="note">{% if duty.day %}{{ duty.day.display_label }}{% endif %}{% if duty.start_time or duty.end_time %} {{ duty.start_time|default:"" }}{% if duty.end_time %}–{{ duty.end_time }}{% endif %} Uhr{% endif %}</span>
+        {% endif %}
+    </td>
+    <td>{% include "events/_duty_print_people.html" with signups=duty.regular_signups open_spots=duty.open_spots %}</td>
+    <td class="col-count">{% if duty.needed_people %}{{ duty.signup_count }}/{{ duty.needed_people }}{% else %}{{ duty.signup_count }}{% endif %}</td>
+</tr>

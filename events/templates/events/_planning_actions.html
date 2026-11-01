@@ -1,0 +1,6 @@
+{% load l10n %}
+<a class="{% if compact %}advert-icon-action{% else %}btn link{% endif %}" href="{% url 'events:planning_item_edit' event.pk item.pk %}" title="Bearbeiten: {{ item.title }}" aria-label="Bearbeiten: {{ item.title }}"><i class="fa-solid fa-pen" aria-hidden="true"></i>{% if not compact %}Bearbeiten{% endif %}</a>
+<form class="inline" method="post" action="{% url 'events:planning_item_delete' event.pk item.pk %}" onsubmit="return confirm('Achtung: Der Eintrag wird unwiderruflich gelöscht. Fortfahren?');">
+    {% csrf_token %}<input type="hidden" name="revision" value="{{ item.revision|unlocalize }}">
+    <button class="{% if compact %}advert-icon-action{% else %}btn link{% endif %}" type="submit" title="Löschen: {{ item.title }}" aria-label="Löschen: {{ item.title }}"><i class="fa-solid fa-trash" aria-hidden="true"></i>{% if not compact %}Löschen{% endif %}</button>
+</form>

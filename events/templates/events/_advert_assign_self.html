@@ -1,0 +1,13 @@
+{% load events_extras %}
+{% if may_write %}
+{% if item|responsible_user:request.user %}
+<span class="muted small">Du bist eingetragen.</span>
+{% elif request.user.is_authenticated %}
+<form method="post" action="{% url 'events:planning_item_assign_self' event.pk item.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="btn advert-participation-btn"><i class="fa-solid fa-check" aria-hidden="true"></i>Ich übernehme das</button>
+</form>
+{% else %}
+<a class="btn advert-participation-btn" href="{% action_url 'events:planning_item_assign_self' event.pk item.pk %}"><i class="fa-solid fa-check" aria-hidden="true"></i>Ich übernehme das</a>
+{% endif %}
+{% endif %}

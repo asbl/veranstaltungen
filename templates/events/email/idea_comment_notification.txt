@@ -1,0 +1,9 @@
+{% autoescape off %}Hallo {{ recipient_name }},
+
+es gibt {% if entries|length > 1 %}neue Kommentare{% else %}einen neuen Kommentar{% endif %} zu {% if entries|length > 1 %}Ideen{% else %}einer Idee{% endif %}, an denen du beteiligt bist:
+
+{% for entry in entries %}"{{ entry.idea.text }}"
+{{ entry.author_name }} schreibt: {{ entry.comment.text }}
+{{ entry.url }}
+
+{% endfor %}{% endautoescape %}

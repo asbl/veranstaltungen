@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Absagen{% endblock %}
+{% block content %}
+    <h1>Für „{{ event.title }}“ absagen</h1>
+    <form method="post" class="card">
+        {% csrf_token %}
+        {% include "events/_form_error_summary.html" %}
+        {% if attendance %}
+            <p class="muted">
+                Du bist aktuell angemeldet{% if attendance.brought_people.count %} und bringst {{ attendance.brought_people.count }} Person{{ attendance.brought_people.count|pluralize:"en" }} mit{% endif %}.
+            </p>
+            <div class="form-row">
+                <label><input type="checkbox" name="delete_attendance" checked> Meine Anmeldung aus der Anwesenheitsliste löschen</label>
+            </div>
+            {% if attendance.brought_people.count %}
+                <div class="form-row">
+                    <label><input type="checkbox" name="delete_brought_people"> Nur die von mir mitgebrachten Personen entfernen (falls oben nicht ausgewählt, bleibt meine eigene Anmeldung bestehen)</label>
+                </div>
+            {% endif %}
+        {% endif %}
+        {% for field in form %}
+            <p class="form-row">
+                {{ field.errors }}
+                <label for="{{ field.id_for_label }}">{{ field.label }} {% include "events/_required_badge.html" with field=field %}</label>
+                {{ field }}
+                {% if field.help_text %}<span class="muted small">{{ field.help_text }}</span>{% endif %}
+            </p>
+        {% endfor %}
+        <button type="submit" class="btn"><i class="fa-solid fa-user-xmark"></i>Absagen</button>
+        <a class="btn secondary" href="{% url 'events:event_detail' event.pk %}#attendance-section">Abbrechen</a>
+    </form>
+{% endblock %}

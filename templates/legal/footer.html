@@ -1,0 +1,42 @@
+<footer class="site-footer">
+    <div class="footer-inner">
+        {% if imprint.name and imprint.street and imprint.city and imprint.email %}
+            <button type="button" class="footer-link" data-dialog-open="imprint-dialog">Impressum</button>
+        {% endif %}
+        <button type="button" class="footer-link" data-dialog-open="privacy-dialog">Datenschutz</button>
+    </div>
+</footer>
+
+{% if imprint.name and imprint.street and imprint.city and imprint.email %}
+    <dialog class="legal-dialog" id="imprint-dialog" aria-labelledby="imprint-title">
+        <div class="legal-dialog-content">
+            <div class="legal-dialog-heading">
+                <h2 id="imprint-title">Impressum</h2>
+                <button type="button" class="dialog-close" data-dialog-close aria-label="Impressum schließen">&times;</button>
+            </div>
+            <p>Angaben gemäß § 5 DDG</p>
+            <address>
+                {{ imprint.name }}<br>
+                {{ imprint.street }}<br>
+                {{ imprint.city }}<br>
+                E-Mail: <a href="mailto:{{ imprint.email }}">{{ imprint.email }}</a>
+            </address>
+        </div>
+    </dialog>
+{% endif %}
+
+<dialog class="legal-dialog" id="privacy-dialog" aria-labelledby="privacy-title">
+    <div class="legal-dialog-content">
+        <div class="legal-dialog-heading">
+            <h2 id="privacy-title">Datenschutz</h2>
+            <button type="button" class="dialog-close" data-dialog-close aria-label="Datenschutzhinweis schließen">&times;</button>
+        </div>
+        {% if imprint.name and imprint.street and imprint.city and imprint.email %}
+            <p><strong>Verantwortlich:</strong> {{ imprint.name }}, {{ imprint.street }}, {{ imprint.city }}, <a href="mailto:{{ imprint.email }}">{{ imprint.email }}</a>.</p>
+        {% endif %}
+        <p><strong>Gespeicherte Daten:</strong> Für Anmeldung und Nutzung werden E-Mail-Adresse, Anzeigename, der letzte Besuchszeitpunkt je Veranstaltung, technisch notwendige Session- und Sicherheitsdaten sowie deine freiwilligen Veranstaltungsangaben gespeichert. Dazu können Zu- und Absagen, Namen mitgebrachter Personen, Kommentare, Ideen, Fragen, Reaktionen, Spielinteressen und Anmeldungen gehören.</p>
+        <p><strong>Zweck und Rechtsgrundlage:</strong> Die Verarbeitung dient ausschließlich der Anmeldung, Sicherheit und Organisation der Veranstaltungen (Art. 6 Abs. 1 lit. b und f DSGVO). Es gibt keine Werbung, Analyse oder Tracking-Cookies.</p>
+        <p><strong>Weitergabe und Dauer:</strong> Veranstaltungsangaben sind je nach Zugang für andere Teilnehmende bzw. Besucher und die jeweilige Orga sichtbar. Technische Dienstleister für Hosting und E-Mail erhalten Daten nur, soweit dies für den Betrieb nötig ist. Kontodaten werden bis zur Kontolöschung gespeichert; Beiträge bleiben danach gegebenenfalls ohne Kontoverknüpfung bestehen, bis sie oder die Veranstaltung gelöscht werden. Bei jeder Formular-Absendung und bei Fehlern protokolliert der Server Zeitpunkt, Benutzername, aufgerufene Adresse (ohne Parameter), Ergebnis und gegebenenfalls die angezeigte Fehlermeldung, damit sich Probleme nachvollziehen lassen; dieses Protokoll wird nach 90 Tagen gelöscht. Übrige technische Sitzungs- und Sicherheitsdaten werden nur so lange aufbewahrt, wie sie für Betrieb und Schutz der Anwendung erforderlich sind; gesetzliche Pflichten bleiben unberührt.</p>
+        <p><strong>Deine Rechte:</strong> Du kannst Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch verlangen sowie dich bei einer Datenschutzaufsichtsbehörde beschweren. Wende dich dafür an die oben genannte verantwortliche Person.</p>
+    </div>
+</dialog>

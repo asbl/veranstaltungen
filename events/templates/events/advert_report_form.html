@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Werbung eintragen{% endblock %}
+{% block content %}
+<h1>{% if item %}Werbung melden: {{ item.title }}{% else %}Werbeort / Aktion hinzufügen{% endif %}</h1>
+<p>{{ event.title }} · Wähle aus, wer verantwortlich ist oder mitgemacht hat.</p>
+<form method="post" class="card">
+{% csrf_token %}{% include "events/_form_error_summary.html" %}
+{% for field in form %}{% if field.is_hidden %}{{ field }}{% elif field.name == "published_on" %}{% else %}
+<p class="form-row">{{ field.errors }}<label for="{{ field.id_for_label }}">{{ field.label }} {% include "events/_required_badge.html" with field=field %}</label>{{ field }}{% if field.help_text %}<span class="muted small">{{ field.help_text }}</span>{% endif %}</p>
+{% endif %}{% endfor %}
+<details class="form-more-options"{% if form.published_on.errors %} open{% endif %}><summary>Erweiterte Optionen</summary>{% include "events/_planning_form_field.html" with field=form.published_on %}</details>
+<button type="submit" class="btn">Werbung eintragen</button>
+<a class="btn secondary" href="{% url 'events:event_detail' event.pk %}#advert-section">Zurück zur Werbung-Liste</a>
+</form>
+{% endblock %}

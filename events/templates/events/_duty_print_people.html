@@ -1,0 +1,4 @@
+{% load events_extras %}<ul class="badges">
+    {% for signup in signups %}<li class="badge badge-person"><b>{{ signup.user|display_name }}</b>{% if not signup.user_is_attending %} <span class="note">(nicht angemeldet)</span>{% endif %}</li>{% endfor %}
+    {% for _ in open_spots %}<li><span class="write-in" aria-hidden="true"></span></li>{% endfor %}
+</ul>

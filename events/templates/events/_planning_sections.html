@@ -1,0 +1,46 @@
+{% load events_extras %}
+{% for category, label, items in planning_groups %}
+{% if not planning_category or category == planning_category %}
+<section class="feature planning-list" id="{{ category }}-section">
+    <h2>{{ label }} {% include "events/_list_settings_link.html" %}</h2>
+    {% include "events/_list_description.html" %}
+    {% if category == 'advert' and may_write %}
+    <p>Werbung gemacht? Trage den Ort ein oder melde sie bei einem bestehenden Eintrag.</p>
+    <a class="btn section-add-btn" href="{% action_url 'events:advert_report_create' event.pk %}">Werbeort / Aktion hinzufügen</a>
+    {% endif %}
+    {% if can_manage and category != "advert" %}<a class="btn section-add-btn" href="{% url 'events:planning_item_create' event.pk %}?category={{ category }}">Verantwortlichkeit hinzufügen</a>{% endif %}
+    {% if category == 'advert' %}
+    <details class="advert-highscore" open>
+        <summary><strong>Werbe-Highscore</strong></summary>
+        <p class="muted small">Ein Punkt pro Person und erledigtem Werbeort / Aktion. Bei gemeinsamen Aktionen bekommt jede Person einen Punkt. Mitmach-Aktionen zählen pro Teilnahme; offene Zusagen zählen noch nicht.</p>
+        {% if advert_highscore %}<div class="table-scroll"><table><thead><tr><th>Platz</th><th>Person</th><th>Punkte</th></tr></thead><tbody>
+        {% for row in advert_highscore %}<tr><td>{{ row.rank }}</td><td>{{ row.name }}</td><td>{{ row.points }}</td></tr>{% endfor %}
+        </tbody></table></div>{% else %}<p class="muted">Noch keine erledigten Werbeaktionen.</p>{% endif %}
+        {% if advert_identities %}<p><strong>Zusammengeführte Namen</strong></p><ul>{% for identity in advert_identities %}<li>{{ identity.name }}{% if identity.aliases %}: {{ identity.aliases }}{% endif %}{% if can_manage %} · <a href="{% url 'events:advert_alias_edit' event.pk identity.pk %}">Bearbeiten</a>{% endif %}</li>{% endfor %}</ul>{% endif %}
+        {% if can_manage %}<a class="btn secondary" href="{% url 'events:advert_aliases' event.pk %}">Aliase hinzufügen</a>{% endif %}
+    </details>
+    {% endif %}
+    {% if category == 'advert' %}
+    {% include "events/_advert_compact.html" %}
+    <details class="advert-details">
+        <summary>Detaillierte Werbeliste ({{ items|length }})</summary>
+    {% endif %}
+    {% include "events/_planning_controls.html" %}
+    <div class="table-scroll">
+        <table class="game-table">
+            <thead><tr><th>{% if category == 'advert' %}Wo wird Werbung gemacht?{% else %}Verantwortlichkeit{% endif %}</th>{% if category != "orga" or event.responsibilities_show_status %}<th>Status</th>{% endif %}<th>Verantwortlich</th><th>Notizen{% if category == 'advert' %} / Veröffentlichung{% endif %}</th>{% if can_manage %}<th>Aktionen</th>{% endif %}</tr></thead>
+            <tbody>{% for item in items %}
+                <tr id="{% if category == 'advert' %}planning-detail-{% else %}planning-{% endif %}{{ item.pk }}" class="{% if category == 'orga' %}{% if item.people %}responsibility-assigned{% else %}responsibility-unassigned{% endif %}{% endif %}" data-planning-status="{{ item.planning_status }}" data-people="{% if item.everyone %}alle {% for person in item.completed_by.all %}{{ person|display_name|lower }} {% endfor %}{% else %}{{ item.people|lower }}{% endif %}">
+                    <td>{{ item.title }}{% if category == 'advert' and not item.everyone and may_write %}<div class="advert-report"><a class="advert-report-link" href="{% action_url 'events:advert_report' event.pk item.pk %}">Hier habe ich Werbung gemacht</a></div>{% endif %}{% if category == 'advert' and item.due_date %}<br><span class="{% if item.status != 'done' and item.due_date < today %}pill danger{% else %}muted small{% endif %}">Fällig: {{ item.due_date|date:'d.m.Y' }}{% if item.status != 'done' and item.due_date < today %} · überfällig{% endif %}</span>{% endif %}</td>
+                    {% if category != "orga" or event.responsibilities_show_status %}<td data-label="Status">{% if item.can_open_status %}<a class="planning-status-link" data-planning-edit aria-haspopup="dialog" href="{% url 'events:planning_status_edit' event.pk item.pk %}" aria-label="Status bearbeiten: {{ item.title }}" title="Status bearbeiten">{% endif %}<span class="pill{% if item.planning_status == 'open' %} danger{% elif category == 'advert' and item.planning_status == 'progress' %} warn{% endif %}">{% if item.everyone %}{% with count=item.participation_count %}{% if count == 0 %}Zum Mitmachen{% elif count == 1 %}1 Person{% else %}{{ count }} Personen{% endif %}{% endwith %}{% else %}{{ item.get_status_display }}{% endif %}</span>{% if item.can_open_status %}</a>{% endif %}</td>{% endif %}
+                    <td data-label="Verantwortlich">{% if item.everyone %}{% include "events/_advert_participation.html" %}{% elif item.people %}{% if item.can_open_people %}<a class="planning-status-link" data-planning-edit aria-haspopup="dialog" href="{% url 'events:planning_people_edit' event.pk item.pk %}" aria-label="Verantwortliche bearbeiten: {{ item.title }}">{% endif %}{% if category == "orga" %}<span class="pill success">{{ item.people }}</span>{% else %}{{ item.people }}{% endif %}{% if item.can_open_people %}</a>{% endif %}{% else %}{% if item.can_open_people %}<a class="planning-status-link" data-planning-edit aria-haspopup="dialog" href="{% url 'events:planning_people_edit' event.pk item.pk %}" aria-label="Verantwortliche bearbeiten: {{ item.title }}"><span class="pill danger">Noch offen</span></a>{% else %}<span class="pill danger">Noch offen</span>{% endif %}{% if item.last_done_by %} <span class="planning-last-done">zuletzt gemacht von {{ item.last_done_by }}</span>{% endif %}{% endif %}{% if not item.everyone %}{% include "events/_advert_assign_self.html" %}{% endif %}</td>
+                    <td data-label="Notizen / Veröffentlichung">{{ item.notes|linebreaksbr }}{% if item.reference_url %}<br><a href="{{ item.reference_url }}" rel="noopener noreferrer" target="_blank">{% if category == 'advert' %}Link{% else %}Weitere Informationen{% endif %}</a>{% endif %}{% if category == 'advert' %}{% if item.published_on %}<br>Veröffentlicht: {{ item.published_on|date:'d.m.Y' }}{% endif %}{% if item.publication_url and item.publication_url != item.reference_url %}<br><a href="{{ item.publication_url }}" rel="noopener noreferrer" target="_blank">{% if item.reference_url %}Bisheriger zusätzlicher Link{% else %}Link{% endif %}</a>{% endif %}{% endif %}</td>
+                    {% if can_manage %}<td class="planning-actions" data-label="Aktionen">{% include "events/_planning_actions.html" %}</td>{% endif %}
+                </tr>
+            {% empty %}<tr><td colspan="{% if category == "orga" and not event.responsibilities_show_status %}{% if can_manage %}4{% else %}3{% endif %}{% else %}{% if can_manage %}5{% else %}4{% endif %}{% endif %}">Noch keine Einträge.</td></tr>{% endfor %}</tbody>
+        </table>
+    </div>
+    {% if category == 'advert' %}</details>{% endif %}
+</section>
+{% endif %}
+{% endfor %}

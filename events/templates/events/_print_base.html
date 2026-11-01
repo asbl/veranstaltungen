@@ -1,0 +1,48 @@
+{% load static %}<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{% endblock %} – {{ event.title }}</title>
+    <style>
+        /* Neutrale Hausfarben des Betreibers: Dunkel, Grün, Grünton, Lila nur als Akzent. */
+        @font-face { font-family: "Source Sans 3"; font-weight: 400; src: url("{% static 'events/fonts/SourceSans3-Regular.woff2' %}") format("woff2"); }
+        @font-face { font-family: "Source Sans 3"; font-weight: 600; src: url("{% static 'events/fonts/SourceSans3-Semibold.woff2' %}") format("woff2"); }
+        @font-face { font-family: "Source Sans 3"; font-weight: 700; src: url("{% static 'events/fonts/SourceSans3-Bold.woff2' %}") format("woff2"); }
+        :root { --dark: #20241f; --green: #146738; --tint: #eaf0e5; --accent: #a52679; --muted: #5b6159; --line: #c9d3c2; }
+        * { box-sizing: border-box; }
+        body { font-family: "Source Sans 3", "Source Sans Pro", sans-serif; color: var(--dark); margin: 2rem auto; padding: 0 1rem; max-width: 60rem; line-height: 1.4; }
+        .kicker { margin: 0; color: var(--accent); font-size: .8rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+        h1 { font-size: 1.6rem; margin: 0 0 .5rem; padding-bottom: .35rem; border-bottom: 3px solid var(--green); }
+        .note { font-size: .75em; color: var(--muted); }
+        .badges { display: flex; flex-wrap: wrap; gap: .25rem; margin: 0; padding: 0; list-style: none; }
+        .badge { display: inline-flex; align-items: baseline; gap: .3em; padding: .1em .55em; border-radius: 999px; background: var(--tint); color: var(--dark); line-height: 1.4; }
+        .badge b { color: var(--green); font-weight: 700; }
+        /* Namen (Mitbringliste, Dienste): Name nie umbrechen, Kommentar läuft als Fließtext weiter. */
+        .badge-person { display: inline-block; border-radius: .7em; }
+        .badge-person b { color: var(--dark); font-weight: 600; white-space: nowrap; }
+        /* Freie Zeilen zum Eintragen per Hand */
+        .write-in { display: block; height: 1.55rem; border-bottom: 1px dashed var(--muted); }
+        button { font: inherit; padding: .45rem 1rem; cursor: pointer; border: 0; border-radius: 6px; background: var(--green); color: #fff; font-weight: 600; }
+        .print-actions { display: flex; gap: 1rem; align-items: center; margin: 1rem 0; }
+        .print-actions a { color: var(--green); }
+        @page { size: A4; margin: 12mm 13mm; }
+        @media print {
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body { max-width: none; margin: 0; padding: 0; font-size: 10pt; }
+            .print-actions { display: none; }
+            h1, h2, h3 { break-after: avoid; }
+        }
+        {% block style %}{% endblock %}
+    </style>
+</head>
+<body>
+    <p class="kicker">{% block kicker %}{% endblock %}</p>
+    <h1>{{ event.title }}</h1>
+    <div class="print-actions">
+        <button type="button" onclick="window.print()">Drucken</button>
+        <a href="{% url 'events:event_detail' event.pk %}#{% block back_anchor %}{% endblock %}">{% block back_label %}{% endblock %}</a>
+    </div>
+    {% block content %}{% endblock %}
+</body>
+</html>

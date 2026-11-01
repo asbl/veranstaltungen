@@ -1,0 +1,72 @@
+{% load events_extras %}
+    <section class="feature" id="ideas-section">
+        <h2>Ideenliste ({{ ideas|length }}) {% include "events/_list_settings_link.html" %}</h2>
+        {% include "events/_list_description.html" %}
+        {% if may_write %}
+            <button type="button" class="btn section-add-btn comment-toggle" data-target="idea-create-form"><i class="fa-solid fa-plus"></i>Idee hinzufügen</button>
+            <form id="idea-create-form" class="inline-create-form" method="post" action="{% action_url 'events:idea_create' event.pk %}" hidden>
+                {% csrf_token %}
+                <div class="simple-editor">
+                    <div class="simple-editor-toolbar">
+                        <button type="button" data-wrap="**" title="Fett"><i class="fa-solid fa-bold"></i></button>
+                        <button type="button" data-wrap="*" title="Kursiv"><i class="fa-solid fa-italic"></i></button>
+                        <button type="button" data-prefix="- " title="Liste"><i class="fa-solid fa-list-ul"></i></button>
+                    </div>
+                    <label class="required-textarea-label">Idee <span class="required-badge">Pflichtfeld</span><textarea name="text" placeholder="Deine Idee…" rows="3" required></textarea></label>
+                </div>
+                <button type="submit" class="btn secondary"><i class="fa-solid fa-plus"></i>Hinzufügen</button>
+            </form>
+        {% endif %}
+        <ul class="item-list">
+            {% for idea in ideas %}
+                <li id="idea-{{ idea.pk }}">
+                    <div class="idea-text">{{ idea.text|simple_markdown }}</div>
+                    <p class="muted small idea-author">(eingetragen von {% user_link idea.author event %})</p>
+                    <div class="qa-thread">
+                        <p class="muted idea-meta">
+                            {% if may_write %}
+                            <form class="inline" method="post" action="{% action_url 'events:idea_like_toggle' idea.pk %}">
+                                {% csrf_token %}
+                                <button type="submit" class="reaction-btn{% if idea.liked_by_me %} active{% endif %}" title="Like">
+                                    <i class="fa-solid fa-heart"></i><span class="count">{{ idea.like_count }}</span>
+                                </button>
+                            </form>
+                            <button type="button" class="btn link comment-toggle" data-target="idea-comment-form-{{ idea.pk }}"><i class="fa-solid fa-comment"></i>Kommentieren</button>
+                            {% endif %}
+                            <a class="btn link idea-share-link" href="{% url 'events:idea_permalink' idea.pk %}" data-share-title="Idee zu {{ event.title }}"><i class="fa-solid fa-share-nodes"></i>Link teilen</a>
+                            {% if idea.author == user and may_write or can_manage %}
+                                <form class="inline" method="post" action="{% url 'events:idea_delete' idea.pk %}"
+                                      onsubmit="return confirm('Achtung: Die Idee wird inklusive aller Kommentare unwiderruflich gelöscht. Fortfahren?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn link"><i class="fa-solid fa-trash"></i>{% if idea.author == user %}löschen{% else %}(Orga:) Löschen{% endif %}</button>
+                                </form>
+                            {% endif %}
+                        </p>
+                        {% if idea.comments.all %}
+                            <ul class="sublist idea-comments">
+                                {% for comment in idea.comments.all %}
+                                    <li>{% user_link comment.author event %}: {{ comment.text|simple_markdown }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        {% if may_write %}
+                        <form id="idea-comment-form-{{ idea.pk }}" class="idea-comment-form" method="post" action="{% action_url 'events:idea_comment_create' idea.pk %}" hidden>
+                            {% csrf_token %}
+                            <div class="simple-editor">
+                                <div class="simple-editor-toolbar">
+                                    <button type="button" data-wrap="**" title="Fett"><i class="fa-solid fa-bold"></i></button>
+                                    <button type="button" data-wrap="*" title="Kursiv"><i class="fa-solid fa-italic"></i></button>
+                                    <button type="button" data-prefix="- " title="Liste"><i class="fa-solid fa-list-ul"></i></button>
+                                </div>
+                                <label class="required-textarea-label">Kommentar <span class="required-badge">Pflichtfeld</span><textarea name="text" placeholder="Kommentar…" rows="2" required></textarea></label>
+                            </div>
+                            <button type="submit" class="btn secondary"><i class="fa-solid fa-comment"></i>Absenden</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </li>
+            {% empty %}
+                <li class="muted">Noch keine Ideen.</li>
+            {% endfor %}
+        </ul>
+    </section>

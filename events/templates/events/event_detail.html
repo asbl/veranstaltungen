@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% load static events_extras %}
+{% block title %}{{ event.title }}{% endblock %}
+{% block content %}
+    <h1>{{ event.title }}</h1>
+    {% if event.is_readonly %}
+        <div class="card">
+            <p><i class="fa-solid fa-lock"></i> Diese Veranstaltung ist beendet und schreibgeschützt – alle Einträge bleiben einsehbar, können aber nicht mehr geändert werden.</p>
+            {% if can_manage %}<p class="muted small">Als Orga bleiben Bearbeitung und das Aufheben des Schutzes über „Veranstaltung bearbeiten“ möglich.</p>{% endif %}
+        </div>
+    {% endif %}
+    {% if user.is_authenticated %}
+        {% if first_tracked_visit or recent_changes %}
+            <details class="recent-changes feature">
+                <summary>
+                    <strong>Neu seit deinem letzten Besuch</strong>
+                    {% if recent_change_count %}<span class="pill">{{ recent_change_count }}</span>{% endif %}
+                </summary>
+                {% if first_tracked_visit %}
+                <p class="muted">Ab jetzt werden dir hier neue Aktivitäten anderer Personen seit deinem jeweils letzten Besuch angezeigt.</p>
+                {% else %}
+                    {% for group in recent_changes %}
+                        <h3>{{ group.label }} {% include "events/_required_badge.html" with field=group %}</h3>
+                        <ul class="sublist">
+                            {% for item in group.items %}<li>{{ item }}</li>{% endfor %}
+                        </ul>
+                    {% endfor %}
+                    {% if recent_changes_limited %}
+                        <p class="muted">Es werden höchstens 100 neue Aktivitäten angezeigt.</p>
+                    {% endif %}
+                {% endif %}
+            </details>
+        {% else %}
+            <p class="recent-changes feature muted">Es gibt nichts neues seit deinem letzten Besuch</p>
+        {% endif %}
+    {% endif %}
+    {% if event.location %}<p class="muted">📍 {{ event.location }}</p>{% endif %}
+    {% if event.planning_enabled and not event.days.all %}<p class="pill">Termin noch offen</p>{% endif %}
+    {% if event.description %}<div class="prose">{{ event.description|simple_markdown }}</div>{% endif %}
+    {% if can_manage %}
+        <a class="btn link" href="{% url 'events:event_edit' event.pk %}"><i class="fa-solid fa-pen"></i>(Orga:) Veranstaltung bearbeiten</a>
+        <a class="btn link" href="{% url 'events:event_orga_edit' event.pk %}"><i class="fa-solid fa-users-gear"></i>(Orga:) Orga bearbeiten</a>
+        <form method="post" action="{% url 'events:event_delete' event.pk %}" class="inline event-delete-form">
+            {% csrf_token %}
+            <button type="submit" class="btn link"><i class="fa-solid fa-trash"></i>(Orga:) Veranstaltung löschen</button>
+        </form>
+    {% endif %}
+
+    {% if user.is_authenticated %}
+        <form method="post" action="{% url 'events:set_display_name' event.pk %}" class="display-name-form">
+            {% csrf_token %}
+            <label for="display_name"><i class="fa-solid fa-user"></i> Dein persönlicher Anzeigename</label>
+            <input type="text" id="display_name" name="display_name" value="{{ user|display_name }}" maxlength="200">
+            <button type="submit" class="btn secondary"><i class="fa-solid fa-floppy-disk"></i>Speichern</button>
+            <span class="muted small">Gilt veranstaltungsübergreifend in Anwesenheit, Spielen, Diensten, Kommentaren und allen weiteren Listen.</span>
+        </form>
+    {% endif %}
+
+    <div class="event-section-nav-shell">
+        <nav class="event-section-nav" aria-label="Bereiche dieser Veranstaltung">
+            {% for list in event.visible_lists %}
+            <a href="#{{ list.key }}-section"><i class="fa-solid fa-{{ list.icon }}" aria-hidden="true"></i>{{ list.label }}</a>
+            {% endfor %}
+        </nav>
+    </div>
+
+    {% if can_manage and event.planning_enabled %}
+    <div class="planning-tools"><a class="btn secondary" href="{% url 'events:planning_import' event.pk %}">Aufgaben aus Vorlage übernehmen</a> <a class="btn secondary" href="{% url 'events:planning_history' event.pk %}">Änderungsverlauf</a></div>
+    {% endif %}
+    {% for list in event.visible_lists %}
+        {% include list.template %}
+    {% endfor %}
+
+    {{ event_user_profiles|json_script:"event-user-profiles" }}
+    <dialog class="user-profile-dialog" id="user-profile-dialog" aria-labelledby="user-profile-title">
+        <div class="user-profile-dialog-content">
+            <div class="user-profile-dialog-heading">
+                <h2 id="user-profile-title"><i class="fa-solid fa-user" aria-hidden="true"></i> <span data-user-profile-title></span></h2>
+                <button type="button" class="dialog-close" data-user-profile-close aria-label="Personenübersicht schließen">&times;</button>
+            </div>
+            <section>
+                <h3><i class="fa-solid fa-basket-shopping" aria-hidden="true"></i> Mitbringliste</h3>
+                <ul data-user-profile-list="potluck"></ul>
+            </section>
+            <section>
+                <h3><i class="fa-solid fa-dice" aria-hidden="true"></i> Mitgebrachte Spiele</h3>
+                <ul data-user-profile-list="games"></ul>
+            </section>
+            <section>
+                <h3><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Dienste</h3>
+                <ul data-user-profile-list="duties"></ul>
+            </section>
+        </div>
+    </dialog>
+
+{% endblock %}
+{% block extra_js %}
+    <dialog class="planning-edit-dialog" id="planning-edit-dialog" aria-labelledby="planning-field-title">
+        <button type="button" class="dialog-close" data-planning-close aria-label="Bearbeitung schließen">&times;</button>
+        <div data-planning-content></div>
+        <p data-planning-feedback role="alert"></p>
+    </dialog>
+    <script src="{% static 'events/js/planning-edit.js' %}"></script>
+    <script src="{% static 'events/js/event-section-nav.js' %}"></script>
+    <script src="{% static 'events/js/todo-completion.js' %}"></script>
+    <script src="{% static 'events/js/planning-list.js' %}"></script>
+    <script src="{% static 'events/js/game-table.js' %}"></script>
+    <script src="{% static 'events/js/attendance-list.js' %}"></script>
+    <script src="{% static 'events/js/simple-editor.js' %}"></script>
+    <script src="{% static 'events/js/collapsible-forms.js' %}"></script>
+    <script src="{% static 'events/js/user-profiles.js' %}"></script>
+    <script src="{% static 'events/js/idea-sharing.js' %}"></script>
+    <script>
+        var eventDeleteForm = document.querySelector(".event-delete-form");
+        if (eventDeleteForm) {
+            eventDeleteForm.addEventListener("submit", function (event) {
+                var ok = confirm(
+                    "Achtung: Die Veranstaltung „{{ event.title|escapejs }}“ wird inklusive aller Anmeldungen, " +
+                    "Mitbringliste, Ideen, Fragen, Spiele und Dienste unwiderruflich gelöscht. Fortfahren?"
+                );
+                if (!ok) {
+                    event.preventDefault();
+                }
+            });
+        }
+    </script>
+{% endblock %}

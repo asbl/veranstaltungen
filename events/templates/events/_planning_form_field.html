@@ -1,0 +1,6 @@
+<p class="form-row">
+    {{ field.errors }}
+    <label for="{{ field.id_for_label }}">{{ field.label }} {% include "events/_required_badge.html" with field=field %}</label>
+    {{ field }}
+    {% if field.help_text %}<span class="muted small">{{ field.help_text }}</span>{% endif %}
+</p>

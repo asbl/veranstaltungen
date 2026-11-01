@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ heading }}{% endblock %}
+{% block content %}
+<h1>{{ heading }} – {{ event.title }}</h1>
+<form method="post" class="card">
+    {% csrf_token %}
+    {% include "events/_form_error_summary.html" %}
+    {% for field in form %}
+        <p class="form-row">
+            {{ field.errors }}
+            <label for="{{ field.id_for_label }}">{{ field.label }} {% include "events/_required_badge.html" with field=field %}</label>
+            {{ field }}
+            {% if field.help_text %}<span class="muted small">{{ field.help_text }}</span>{% endif %}
+        </p>
+    {% endfor %}
+    <button type="submit" class="btn"><i class="fa-solid fa-floppy-disk"></i>Speichern</button>
+    <a class="btn secondary" href="{% url 'events:event_detail' event.pk %}">Abbrechen</a>
+</form>
+{% endblock %}

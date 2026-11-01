@@ -1,0 +1,88 @@
+{% load events_extras %}
+    <section class="feature" id="slots-section">
+        <h2>Angebote/Workshops ({{ event.slots.count }}) {% include "events/_list_settings_link.html" %}</h2>
+        {% include "events/_list_description.html" %}
+        {% if may_write %}<a class="btn section-add-btn" href="{% url 'events:slot_create' event.pk %}"><i class="fa-solid fa-plus"></i>Angebot/Workshop anbieten</a>{% endif %}
+        {% if event.slots.all %}
+            {% regroup event.slots.all by day as slots_by_day %}
+            {% for day_group in slots_by_day %}
+                <h3>{{ day_group.grouper.display_label }}</h3>
+                <ul class="item-list">
+                {% for slot in day_group.list %}
+                <li id="slot-{{ slot.pk }}">
+                    <strong>{{ slot.title }}</strong>
+                    <span class="muted">{{ slot.start_time }}–{{ slot.end_time }} Uhr</span>
+                    {% if slot.signed_up_by_me %}<span class="pill mine"><i class="fa-solid fa-check" aria-hidden="true"></i> Du bist angemeldet</span>{% endif %}
+                    {% if slot.is_full and slot.allow_waitlist %}
+                        <span class="pill warn">Warteliste{% if slot.waitlist_count %} (+{{ slot.waitlist_count }}){% endif %} – {{ slot.signup_count }}/{{ slot.max_participants }}</span>
+                    {% elif slot.is_full %}
+                        <span class="pill full">voll ({{ slot.signup_count }}/{{ slot.max_participants }})</span>
+                    {% else %}
+                        <span class="pill">{{ slot.signup_count }}/{{ slot.max_participants }} Plätze belegt</span>
+                        {% if slot.allow_waitlist %}
+                            <span class="pill warn">Warteliste möglich</span>
+                        {% endif %}
+                    {% endif %}
+                    {% if slot.created_by == user and may_write or can_manage %}
+                        <div class="slot-actions">
+                            <a class="btn link" href="{% url 'events:slot_edit' slot.pk %}"><i class="fa-solid fa-pen"></i>{% if slot.created_by == user %}bearbeiten{% else %}(Orga:) Bearbeiten{% endif %}</a>
+                            <form class="inline" method="post" action="{% url 'events:slot_delete' slot.pk %}"
+                                  onsubmit="return confirm('Achtung: Das Angebot/der Workshop „{{ slot.title|escapejs }}“ wird unwiderruflich gelöscht. Dabei gehen alle Anmeldungen einschließlich der Warteliste sowie alle Kommentare verloren. Fortfahren?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn link"><i class="fa-solid fa-trash"></i>{% if slot.created_by == user %}löschen{% else %}(Orga:) Löschen{% endif %}</button>
+                            </form>
+                        </div>
+                    {% endif %}
+                    {% if slot.description %}<div class="muted prose">{{ slot.description|simple_markdown }}</div>{% endif %}
+                    <ul class="sublist">
+                        {% for signup in slot.signups.all %}
+                            <li>
+                                {% user_link signup.user event %}
+                                {% if not signup.user_is_attending %}
+                                    <span class="pill warn" title="Diese Person ist nicht (mehr) für die Veranstaltung angemeldet">⚠️ nicht angemeldet</span>
+                                {% endif %}
+                                {% if signup.user == user and may_write or can_manage %}
+                                    <form class="inline" method="post" action="{% url 'events:slot_signup_cancel' signup.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn link"><i class="fa-solid fa-user-minus"></i>abmelden</button>
+                                    </form>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    {% if may_write %}
+                    <form class="inline" method="post" action="{% action_url 'events:slot_signup' slot.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn secondary" {% if slot.is_full and not slot.allow_waitlist %}disabled{% endif %}>
+                            {% if slot.is_full and slot.allow_waitlist %}<i class="fa-solid fa-user-plus"></i>Auf Warteliste anmelden{% else %}<i class="fa-solid fa-check"></i>Anmelden{% endif %}
+                        </button>
+                    </form>
+                    {% endif %}
+                    <ul>
+                        {% for comment in slot.comments.all %}
+                            <li>{% user_link comment.author event %}: {{ comment.text|simple_markdown }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% if may_write %}
+                    <button type="button" class="btn link comment-toggle"><i class="fa-solid fa-comment"></i>Kommentieren</button>
+                    <form method="post" action="{% action_url 'events:slot_comment_create' slot.pk %}" hidden>
+                        {% csrf_token %}
+                        <div class="simple-editor">
+                            <div class="simple-editor-toolbar">
+                                <button type="button" data-wrap="**" title="Fett"><i class="fa-solid fa-bold"></i></button>
+                                <button type="button" data-wrap="*" title="Kursiv"><i class="fa-solid fa-italic"></i></button>
+                                <button type="button" data-prefix="- " title="Liste"><i class="fa-solid fa-list-ul"></i></button>
+                            </div>
+                            <label class="required-textarea-label">Kommentar <span class="required-badge">Pflichtfeld</span><textarea name="text" placeholder="Kommentar…" rows="2" required></textarea></label>
+                        </div>
+                        <button type="submit" class="btn secondary"><i class="fa-solid fa-comment"></i>Absenden</button>
+                    </form>
+                    {% endif %}
+                </li>
+                {% endfor %}
+                </ul>
+            {% endfor %}
+        {% else %}
+            <p class="muted">Noch keine Angebote/Workshops vorhanden.</p>
+        {% endif %}
+    </section>

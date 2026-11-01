@@ -1,0 +1,76 @@
+{% load events_extras %}
+    <section class="feature" id="duties-section">
+        <div class="section-heading-row">
+            <h2>Dienste ({{ event.duties.count }}) {% include "events/_list_settings_link.html" %}</h2>
+            {% if event.duties.all %}
+                <a class="btn secondary" href="{% url 'events:duty_print' event.pk %}" target="_blank" rel="noopener"><i class="fa-solid fa-print" aria-hidden="true"></i>Dienste drucken</a>
+            {% endif %}
+        </div>
+        {% include "events/_list_description.html" %}
+        {% if may_write %}<a class="btn section-add-btn" href="{% url 'events:duty_create' event.pk %}"><i class="fa-solid fa-plus"></i>Dienst anlegen</a>{% endif %}
+        {% if can_manage %}<a class="btn section-add-btn" href="{% url 'events:duty_schedule_create' event.pk %}">Dienstplan-Raster anlegen</a>{% endif %}
+        {% for category, label, groups in duty_groups %}
+        <h3 id="{{ category }}-duties">{{ label }}</h3>
+        {% if category == "service" %}
+            {% for duty_slot in groups %}
+            <div class="duty-slot">
+                <h4 class="duty-slot-time">{{ duty_slot.label }} {% include "events/_required_badge.html" with field=duty_slot %}</h4>
+                <ul class="item-list duty-list">
+                    {% for duty in duty_slot.duties %}
+                        {% include "events/_duty_row.html" %}
+                    {% empty %}
+                        <li class="muted">Keine weiteren Dienste in diesem Zeitraum.</li>
+                    {% endfor %}
+                </ul>
+                <div class="duty-springer{% if not duty_slot.springer_signups %} duty-empty{% endif %}" {% if duty_slot.springer_duty %}id="duty-{{ duty_slot.springer_duty.pk }}"{% endif %}>
+                    <details class="duty-details">
+                        <summary>
+                            <span class="duty-row-title"><strong>Springer</strong></span>
+                            <span class="duty-row-status">
+                                {% if duty_slot.springer_mine %}<span class="pill mine"><i class="fa-solid fa-check" aria-hidden="true"></i> Du bist Springer</span>{% endif %}
+                                <span class="pill">{{ duty_slot.springer_signups|length }} eingetragen</span>
+                                <span class="duty-toggle">Besetzung</span>
+                            </span>
+                        </summary>
+                        <div class="duty-row-content">
+                            <ul class="sublist">
+                                {% for signup in duty_slot.springer_signups %}
+                                    <li>
+                                        {% user_link signup.user event %}
+                                        {% if not signup.user_is_attending and not event.planning_enabled %}
+                                            <span class="pill warn" title="Diese Person ist nicht (mehr) für die Veranstaltung angemeldet">⚠️ nicht angemeldet</span>
+                                        {% endif %}
+                                        {% if signup.user == user and may_write or can_manage %}
+                                            <form class="inline" method="post" action="{% url 'events:duty_signup_cancel' signup.pk %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn link"><i class="fa-solid fa-user-minus"></i>austragen</button>
+                                            </form>
+                                        {% endif %}
+                                    </li>
+                                {% empty %}<li class="muted">Noch keine Springer eingetragen.</li>{% endfor %}
+                            </ul>
+                        </div>
+                    </details>
+                    {% if may_write %}
+                    <form class="inline" method="post" action="{% action_url 'events:duty_signup' duty_slot.springer_target.pk %}">
+                        {% csrf_token %}
+                        {% if duty_slot.springer_is_reserve %}<input type="hidden" name="role" value="reserve">{% endif %}
+                        <button type="submit" class="btn secondary">Als Springer eintragen</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <p class="muted">Noch keine Dienste eingetragen.</p>
+            {% endfor %}
+        {% else %}
+            <ul class="item-list duty-list">
+                {% for duty in groups %}
+                    {% include "events/_duty_row.html" with show_time=True %}
+                {% empty %}
+                    <li class="muted">Noch keine Dienste eingetragen.</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% endfor %}
+    </section>

@@ -1,0 +1,9 @@
+{% extends "account/email/base_message.txt" %}
+{% load account %}
+{% load i18n %}
+
+{% block content %}{% autoescape off %}{% user_display user as user_display %}Du erhältst diese E-Mail, weil {{ user_display }} deine E-Mail-Adresse angegeben hat, um ein Konto bei {{ current_site.domain }} zu registrieren.
+
+{% if code %}Dein Bestätigungscode steht unten. Bitte gib ihn in deinem geöffneten Browserfenster ein.
+
+{{ code }}{% else %}Um zu bestätigen, dass das stimmt, gehe zu {{ activate_url }}{% endif %}{% endautoescape %}{% endblock content %}

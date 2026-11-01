@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Deutsche Beschreibung – {{ game.name }}{% endblock %}
+{% block content %}
+<h1>Deutsche Beschreibung für „{{ game.name }}“</h1>
+<p>Diese Beschreibung gehört zum <a href="https://boardgamegeek.com/boardgame/{{ game.bgg_id }}" target="_blank" rel="noopener noreferrer">BGG-Spiel #{{ game.bgg_id }}</a>. Sie wird in allen Veranstaltungen wiederverwendet. Auch deine Korrekturen gelten überall.</p>
+{% if not translation %}
+  {% if translation_configured %}
+    <form method="post" class="card">
+      {% csrf_token %}
+      <input type="hidden" name="bgg_id" value="{{ game.bgg_id }}">
+      <p>Die BGG-Beschreibung kann einmalig mit DeepL ins Deutsche übersetzt werden. Die vollständige Übersetzung wird sofort gespeichert und lässt sich danach unten bearbeiten.</p>
+      <button type="submit" name="action" value="translate">Auf Deutsch übersetzen und speichern</button>
+    </form>
+  {% else %}
+    <p class="muted">Die automatische Übersetzung ist noch nicht eingerichtet. Eine deutsche Beschreibung kannst du bereits manuell speichern.</p>
+  {% endif %}
+{% elif translation.is_running %}
+  <p role="status">Die Übersetzung wird gerade erstellt. <a href="{% url 'events:game_translation' game.pk %}">Aktualisieren</a></p>
+{% elif translation.status != "ready" %}
+  <p role="alert">{% if translation.error_message %}{{ translation.error_message }}{% else %}Die Übersetzung wurde nicht abgeschlossen.{% endif %} Dieselbe Beschreibung wird nicht erneut an DeepL gesendet - nur wenn sich das BGG-Original ändert, versucht der automatische Lauf es noch einmal. Du kannst die deutsche Beschreibung unten manuell eintragen.</p>
+{% else %}
+  <p class="muted">{{ translation.attribution }}. Die gespeicherte Fassung wird auch für neu angelegte Spiele mit derselben BGG-ID verwendet.</p>
+{% endif %}
+{% if not translation.is_running %}
+<form method="post" class="card">
+  {% csrf_token %}
+  {% include "events/_form_error_summary.html" %}
+  {{ form.bgg_id }}{{ form.revision }}
+  <label for="{{ form.text_de.id_for_label }}">{{ form.text_de.label }}</label>
+  {{ form.text_de.errors }}
+  {{ form.text_de }}
+  <p class="muted small">{{ form.text_de.help_text }}</p>
+  <button type="submit" name="action" value="save">Deutsche Beschreibung speichern</button>
+</form>
+{% endif %}
+{% if source_text %}
+<details class="card">
+  <summary>BGG-Original anzeigen</summary>
+  <div class="prose">{{ source_text|linebreaksbr }}</div>
+</details>
+{% endif %}
+<p><a href="{% url 'events:event_detail' event.pk %}#game-{{ game.pk }}">Zurück zum Spiel</a></p>
+{% endblock %}

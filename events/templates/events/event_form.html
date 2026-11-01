@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{% if event %}Veranstaltung bearbeiten{% else %}Neue Veranstaltung{% endif %}{% endblock %}
+{% block content %}
+    <h1>{% if event %}„{{ event.title }}“ bearbeiten{% else %}Neue Veranstaltung{% endif %}</h1>
+    <form method="post" enctype="multipart/form-data" class="card">
+        {% csrf_token %}
+        {% include "events/_form_error_summary.html" with formset=formset %}
+        {{ form.title.errors }}
+        <p class="form-row"><label for="{{ form.title.id_for_label }}">{{ form.title.label }} {% include "events/_required_badge.html" with field=form.title %}</label>{{ form.title }}</p>
+        {{ form.location.errors }}
+        <p class="form-row"><label for="{{ form.location.id_for_label }}">{{ form.location.label }} {% include "events/_required_badge.html" with field=form.location %}</label>{{ form.location }}</p>
+        {{ form.description.errors }}
+        <label for="{{ form.description.id_for_label }}">{{ form.description.label }} {% include "events/_required_badge.html" with field=form.description %}</label>
+        {% include "events/_simple_editor_field.html" with field=form.description %}
+        <details class="form-more-options"{% if event and event.planning_enabled or event and event.has_access_password or event and event.auto_readonly %} open{% endif %}>
+            <summary>Weitere Optionen</summary>
+            {{ form.planning_enabled.errors }}
+            <p class="form-row">
+                {{ form.planning_enabled }}
+                <label for="{{ form.planning_enabled.id_for_label }}">{{ form.planning_enabled.label }} {% include "events/_required_badge.html" with field=form.planning_enabled %}</label>
+                {% if form.planning_enabled.help_text %}<span class="muted small">{{ form.planning_enabled.help_text }}</span>{% endif %}
+            </p>
+            {{ form.access_password.errors }}
+            <p class="form-row">
+                <label for="{{ form.access_password.id_for_label }}">{{ form.access_password.label }} {% include "events/_required_badge.html" with field=form.access_password %}</label>
+                {{ form.access_password }}
+                <span class="muted small">{{ form.access_password.help_text }}</span>
+            </p>
+            {{ form.allow_known_persons_signup.errors }}
+            <p class="form-row" id="allow-known-persons-row" data-existing-password="{% if event and event.has_access_password %}true{% else %}false{% endif %}">
+                {{ form.allow_known_persons_signup }}
+                <label for="{{ form.allow_known_persons_signup.id_for_label }}">{{ form.allow_known_persons_signup.label }} {% include "events/_required_badge.html" with field=form.allow_known_persons_signup %}</label>
+                <span class="muted small">{{ form.allow_known_persons_signup.help_text }}</span>
+            </p>
+            {{ form.auto_readonly.errors }}
+            <p class="form-row">
+                {{ form.auto_readonly }}
+                <label for="{{ form.auto_readonly.id_for_label }}">{{ form.auto_readonly.label }} {% include "events/_required_badge.html" with field=form.auto_readonly %}</label>
+                <span class="muted small">{{ form.auto_readonly.help_text }}</span>
+            </p>
+        </details>
+        <h2>Listen</h2>
+        <p class="muted">Listen ein- oder ausblenden und am Griff in die gewünschte Reihenfolge ziehen. Alternativ die Pfeiltasten verwenden. Ausgeblendete Listen behalten ihre Einträge.</p>
+        {{ form.lists_configured }}{{ form.list_order }}{{ form.list_order.errors }}
+        <div data-list-settings>
+        {% for row in form.list_rows %}
+            <div class="list-settings-row" id="list-settings-{{ row.key }}" data-list-key="{{ row.key }}">
+                <div class="list-settings-heading">
+                    <span draggable="true" class="list-drag-handle" title="Liste verschieben" aria-hidden="true">⠿</span>
+                    <label>{{ row.enabled_field }} {{ row.label }}</label>
+                    <button type="button" class="btn secondary" data-list-move="up" aria-label="{{ row.label }} nach oben">↑</button>
+                    <button type="button" class="btn secondary" data-list-move="down" aria-label="{{ row.label }} nach unten">↓</button>
+                </div>
+                {% if row.planning %}<p class="muted small">Wird bei aktivierter Vorab-Orga angezeigt.</p>{% endif %}
+                <details{% if form.is_bound or request.GET.list == row.key %} open{% endif %}><summary>Einstellungen</summary>
+                    {% if row.status_field %}<label>{{ row.status_field }} {{ row.status_field.label }}</label>{% endif %}
+                    {{ row.description_field.errors }}
+                    <label for="{{ row.description_field.id_for_label }}">Beschreibung</label>
+                    {{ row.description_field }}
+                    <p class="muted small">Erscheint als Infobox über der Liste, z. B.: Rechnungen können beim Kassenwart eingereicht werden.</p>
+                    <label for="{{ row.uploads_field.id_for_label }}">Bilder und PDFs hinzufügen</label>
+                    {{ row.uploads_field.errors }}{{ row.uploads_field }}
+                    {% if form.is_bound and row.uploads_field.value %}<p class="muted small">Bitte die neuen Dateien nach der Fehlerkorrektur erneut auswählen.</p>{% endif %}
+                    <p class="muted small">Mehrere Dateien auswählbar: PNG, JPEG, GIF, WebP oder PDF, bis zu 20 MB je Datei. Bilder erscheinen als Vorschau, PDFs als Download.</p>
+                    {% if row.attachments %}
+                        <ul>{% for attachment in row.attachments %}
+                            <li><a href="{% url 'events:list_attachment_file' event.pk attachment.pk %}?download=1">{{ attachment.original_name }}</a></li>
+                        {% endfor %}</ul>
+                        <p>Zum Entfernen auswählen (wird beim Speichern übernommen):</p>
+                        {{ row.removals_field.errors }}{{ row.removals_field }}
+                    {% endif %}
+                </details>
+            </div>
+        {% endfor %}
+        </div>
+        <p class="muted small" data-list-order-status aria-live="polite"></p>
+        <h2>Tage</h2>
+        <p class="muted">Für jeden Veranstaltungstag Datum und optional Beginn/Ende eintragen.</p>
+        {{ formset.management_form }}
+        <div id="day-rows">
+            {% for day_form in formset %}
+                <div class="form-row day-row">
+                    {{ day_form.id }}
+                    <div class="day-fields">
+                        {{ day_form.date.errors }}
+                        <p class="day-field">
+                            <label for="{{ day_form.date.id_for_label }}">{{ day_form.date.label }} {% include "events/_required_badge.html" with field=day_form.date %}</label>
+                            {{ day_form.date }}
+                        </p>
+                        {{ day_form.start_time.errors }}
+                        <p class="day-field">
+                            <label for="{{ day_form.start_time.id_for_label }}">{{ day_form.start_time.label }} {% include "events/_required_badge.html" with field=day_form.start_time %}</label>
+                            {{ day_form.start_time }}
+                        </p>
+                        {{ day_form.end_time.errors }}
+                        <p class="day-field">
+                            <label for="{{ day_form.end_time.id_for_label }}">{{ day_form.end_time.label }} {% include "events/_required_badge.html" with field=day_form.end_time %}</label>
+                            {{ day_form.end_time }}
+                        </p>
+                    </div>
+                    {% if day_form.instance.pk %}
+                        <label class="delete-field">
+                            <input type="checkbox" name="{{ day_form.DELETE.html_name }}" id="{{ day_form.DELETE.id_for_label }}"
+                                   class="day-delete-checkbox" data-slot-count="{{ day_form.instance.slots.count }}"
+                                   {% if day_form.DELETE.value %}checked{% endif %}>
+                            Tag löschen
+                            {% if day_form.instance.slots.count %}
+                                <span class="muted">({{ day_form.instance.slots.count }} Angebot{{ day_form.instance.slots.count|pluralize }}/Workshop{{ day_form.instance.slots.count|pluralize }} betroffen)</span>
+                            {% endif %}
+                        </label>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <template id="empty-day-template">
+            <div class="form-row day-row">
+                {{ formset.empty_form.id }}
+                <div class="day-fields">
+                    <p class="day-field">
+                        <label for="{{ formset.empty_form.date.id_for_label }}">{{ formset.empty_form.date.label }} {% include "events/_required_badge.html" with field=formset.empty_form.date %}</label>
+                        {{ formset.empty_form.date }}
+                    </p>
+                    <p class="day-field">
+                        <label for="{{ formset.empty_form.start_time.id_for_label }}">{{ formset.empty_form.start_time.label }} {% include "events/_required_badge.html" with field=formset.empty_form.start_time %}</label>
+                        {{ formset.empty_form.start_time }}
+                    </p>
+                    <p class="day-field">
+                        <label for="{{ formset.empty_form.end_time.id_for_label }}">{{ formset.empty_form.end_time.label }} {% include "events/_required_badge.html" with field=formset.empty_form.end_time %}</label>
+                        {{ formset.empty_form.end_time }}
+                    </p>
+                </div>
+                <button type="button" class="remove-row-btn" data-remove-day-row title="Zeile entfernen" aria-label="Zeile entfernen">✕</button>
+            </div>
+        </template>
+        <button type="button" class="btn secondary" id="add-day-btn"><i class="fa-solid fa-plus"></i>Weiteren Tag hinzufügen</button>
+        <button type="submit" class="btn"><i class="fa-solid fa-floppy-disk"></i>Speichern</button>
+        <a class="btn secondary" href="{% if event %}{% url 'events:event_detail' event.pk %}{% else %}{% url 'events:event_list' %}{% endif %}">Abbrechen</a>
+    </form>
+{% endblock %}
+{% block extra_js %}
+    <script src="{% static 'events/js/list-settings.js' %}"></script>
+    <script src="{% static 'events/js/simple-editor.js' %}"></script>
+    <script>
+        document.querySelectorAll(".day-delete-checkbox").forEach(function (cb) {
+            cb.addEventListener("change", function () {
+                var count = parseInt(cb.dataset.slotCount || "0", 10);
+                if (cb.checked && count > 0) {
+                    var ok = confirm(
+                        "Achtung: An diesem Tag " + count + " Angebot(e)/Workshop(s) sind eingetragen. " +
+                        "Beim Speichern werden diese inklusive aller Anmeldungen und Kommentare unwiderruflich gelöscht. Fortfahren?"
+                    );
+                    if (!ok) {
+                        cb.checked = false;
+                    }
+                }
+            });
+        });
+
+        // „Bekannte Personen dürfen sich ohne Schlüssel anmelden“ ist nur
+        // relevant, wenn die Veranstaltung über ein Zugangspasswort geschützt
+        // ist - daher erscheint die Option erst, wenn ein Passwort eingegeben
+        // wird (oder bereits eines gesetzt ist).
+        (function () {
+            var pwd = document.getElementById("id_access_password");
+            var knownRow = document.getElementById("allow-known-persons-row");
+            if (!pwd || !knownRow) {
+                return;
+            }
+            function updateKnownVisibility() {
+                knownRow.hidden = pwd.value.length > 0 || knownRow.dataset.existingPassword === "true";
+            }
+            pwd.addEventListener("input", updateKnownVisibility);
+            updateKnownVisibility();
+        })();
+
+        (function () {
+            var prefix = "{{ formset.prefix }}";
+            var totalForms = document.getElementById("id_" + prefix + "-TOTAL_FORMS");
+            var rowsContainer = document.getElementById("day-rows");
+            var template = document.getElementById("empty-day-template");
+            var addBtn = document.getElementById("add-day-btn");
+            if (!addBtn || !template) {
+                return;
+            }
+
+            function reindexRows() {
+                rowsContainer.querySelectorAll(".day-row").forEach(function (row, index) {
+                    row.querySelectorAll("[name], [id], label[for]").forEach(function (el) {
+                        ["name", "id", "for"].forEach(function (attr) {
+                            if (el.hasAttribute(attr)) {
+                                el.setAttribute(attr, el.getAttribute(attr).replace(/-\d+-/, "-" + index + "-"));
+                            }
+                        });
+                    });
+                });
+                totalForms.value = rowsContainer.querySelectorAll(".day-row").length;
+            }
+
+            function bindRemove(btn) {
+                btn.addEventListener("click", function (event) {
+                    event.target.closest(".day-row").remove();
+                    reindexRows();
+                });
+            }
+
+            addBtn.addEventListener("click", function () {
+                var index = rowsContainer.querySelectorAll(".day-row").length;
+                var fragment = template.content.cloneNode(true);
+                fragment.querySelectorAll("[name], [id], label[for]").forEach(function (el) {
+                    ["name", "id", "for"].forEach(function (attr) {
+                        if (el.hasAttribute(attr)) {
+                            el.setAttribute(attr, el.getAttribute(attr).replace(/__prefix__/g, index));
+                        }
+                    });
+                });
+                bindRemove(fragment.querySelector("[data-remove-day-row]"));
+                rowsContainer.appendChild(fragment);
+                totalForms.value = rowsContainer.querySelectorAll(".day-row").length;
+            });
+
+            document.querySelectorAll(".day-row [data-remove-day-row]").forEach(bindRemove);
+        })();
+    </script>
+{% endblock %}

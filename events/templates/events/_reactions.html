@@ -1,0 +1,32 @@
+{% load events_extras %}
+<div class="reaction-bar">
+    <form class="inline" method="post" action="{% action_url like_url_name obj.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="reaction-btn{% if obj.liked_by_me %} active{% endif %}" title="Like">
+            <i class="fa-solid fa-heart"></i><span class="count">{{ obj.likes.all|length }}</span>
+        </button>
+    </form>
+    {% for emoji in reaction_emoji %}
+        {% with c=obj.reaction_tally|get_item:emoji %}
+            {% if c %}
+                <form class="inline" method="post" action="{% action_url reaction_url_name obj.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="emoji" value="{{ emoji }}">
+                    <button type="submit" class="reaction-btn{% if emoji in obj.my_reactions %} active{% endif %}">
+                        {{ emoji }}<span class="count">{{ c }}</span>
+                    </button>
+                </form>
+            {% endif %}
+        {% endwith %}
+    {% endfor %}
+    <button type="button" class="btn link reaction-toggle" title="Reaktion hinzufügen"><i class="fa-solid fa-face-smile"></i></button>
+    <div class="reaction-picker" hidden>
+        {% for emoji in reaction_emoji %}
+            <form class="inline" method="post" action="{% action_url reaction_url_name obj.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="emoji" value="{{ emoji }}">
+                <button type="submit" class="reaction-btn{% if emoji in obj.my_reactions %} active{% endif %}">{{ emoji }}</button>
+            </form>
+        {% endfor %}
+    </div>
+</div>

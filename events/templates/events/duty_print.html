@@ -1,0 +1,54 @@
+{% extends "events/_print_base.html" %}
+{% load events_extras %}
+{% block title %}Dienste{% endblock %}
+{% block kicker %}Dienste – wer macht was?{% endblock %}
+{% block back_anchor %}duties-section{% endblock %}
+{% block back_label %}Zu den Diensten{% endblock %}
+{% block style %}
+        h2 { font-size: 1.05rem; color: var(--green); margin: 1rem 0 .2rem; }
+        .print-table { width: 100%; border-collapse: collapse; font-size: .9rem; margin-bottom: .4rem; }
+        .print-table th { text-align: left; color: var(--green); font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-bottom: 2px solid var(--green); padding: .2rem .4rem; }
+        .print-table td { vertical-align: top; border-bottom: 1px solid var(--line); padding: .3rem .4rem; }
+        .print-table tr { break-inside: avoid; }
+        .print-table tbody { break-inside: avoid; }
+        .slot-row td { background: var(--tint); font-weight: 700; padding-top: .25rem; padding-bottom: .25rem; }
+        .col-duty { width: 30%; }
+        .col-count { width: 5.5rem; white-space: nowrap; }
+        .duty-title { font-weight: 600; }
+        .duty-title + .note { display: block; }
+        .is-open .col-count { color: var(--accent); font-weight: 600; }
+        .write-in { display: inline-block; height: 1.2rem; min-width: 7rem; vertical-align: bottom; }
+        @media print { .print-table { font-size: 9.5pt; } }
+{% endblock %}
+{% block content %}
+    {% for category, label, groups in duty_groups %}
+        {% if groups %}
+            <h2>{{ label }}</h2>
+            <table class="print-table">
+                <thead><tr><th class="col-duty">Dienst</th><th>Wer</th><th class="col-count">Besetzt</th></tr></thead>
+                {% if category == "service" %}
+                    {% for duty_slot in groups %}
+                        <tbody>
+                            <tr class="slot-row"><td colspan="3">{{ duty_slot.label }}</td></tr>
+                            {% for duty in duty_slot.duties %}
+                                {% include "events/_duty_print_row.html" %}
+                            {% endfor %}
+                            <tr>
+                                <td class="col-duty"><span class="duty-title">Springer</span></td>
+                                <td>{% include "events/_duty_print_people.html" with signups=duty_slot.springer_signups %}</td>
+                                <td class="col-count">{{ duty_slot.springer_signups|length }}</td>
+                            </tr>
+                        </tbody>
+                    {% endfor %}
+                {% else %}
+                    <tbody>
+                        {% for duty in groups %}
+                            {% include "events/_duty_print_row.html" with show_time=True %}
+                        {% endfor %}
+                    </tbody>
+                {% endif %}
+            </table>
+        {% endif %}
+    {% endfor %}
+    {% if not has_duties %}<p class="note">Noch keine Dienste eingetragen.</p>{% endif %}
+{% endblock %}

@@ -1,0 +1,28 @@
+# Secrets & lokale Konfiguration - niemals committen
+.env
+.env.*
+!.env.example
+
+# Laufzeitdaten mit personenbezogenen Daten
+backups/
+logs/
+cache/
+media/
+staticfiles/
+
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor/Tooling
+.claude/
+.vscode/
+
+# Host-spezifische Compose-Anpassungen und alte Backups
+*.bak
+*.bak-alpn
+docker-compose.override.yml

@@ -1,0 +1,8 @@
+Django>=5.0,<6.0
+django-allauth>=65.0
+psycopg2-binary>=2.9
+requests>=2.31
+whitenoise>=6.6
+gunicorn>=21.2
+openpyxl>=3.1
+certifi>=2026.10.19

@@ -1,0 +1,8 @@
+<div class="planning-controls" hidden>
+    {% if list.key != "orga" or event.responsibilities_show_status %}<label>Status <select class="planning-status-filter"><option value="all">Alle Aufgaben</option><option value="unfinished">Noch nicht erledigt</option><option value="open">Offen</option><option value="progress">In Arbeit</option><option value="waiting">Wartet</option><option value="done">Erledigt</option></select></label>{% endif %}
+    <label>Verantwortlich <input type="search" class="planning-person-filter" placeholder="Name suchen"></label>
+    <label><input type="checkbox" class="planning-unassigned-filter"> Ohne Zuständigkeit</label>
+    <button class="btn secondary planning-reset" type="button">Filter zurücksetzen</button>
+    <p class="planning-progress" role="status" aria-live="polite"></p>
+</div>
+<p class="planning-empty-filter" hidden>Keine Aufgaben passen zu diesen Filtern.</p>

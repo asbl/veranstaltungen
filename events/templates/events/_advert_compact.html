@@ -1,0 +1,26 @@
+{% load events_extras %}
+<div class="advert-compact">
+    <h3>Das können alle machen</h3>
+    <ul class="advert-everyone-list">
+        {% for item in advert_everyone_items %}
+        <li id="planning-{{ item.pk }}">
+            <div class="advert-compact-heading"><strong>{{ item.title }}</strong>{% if can_manage %}<div class="advert-card-actions">{% include "events/_planning_actions.html" with compact=True %}</div>{% endif %}</div>
+            {% include "events/_advert_participation.html" %}
+        </li>
+        {% empty %}<li class="muted">Noch keine Mitmach-Aktionen.</li>{% endfor %}
+    </ul>
+    {% for label, group_items in advert_status_groups %}
+    <div class="advert-status-group {% if forloop.first %}advert-status-open{% elif forloop.last %}advert-status-done{% else %}advert-status-progress{% endif %}">
+        <h3>{{ label }} <span class="muted small">({{ group_items|length }})</span></h3>
+        <ul class="advert-place-list">
+        {% for item in group_items %}
+            <li id="planning-{{ item.pk }}">
+                <div class="advert-compact-heading"><strong>{{ item.title }}</strong>{% if can_manage %}<div class="advert-card-actions">{% include "events/_planning_actions.html" with compact=True %}</div>{% endif %}</div>
+                <div class="advert-card-person"><span class="muted">({% if item.people %}{{ item.people }}{% else %}Verantwortlich offen{% endif %})</span>{% if item.status == 'waiting' %} <span class="muted small">· Wartet</span>{% endif %}</div>
+                {% if may_write %}<a class="advert-report-link" href="{% action_url 'events:advert_report' event.pk item.pk %}">Ich habe hier Werbung gemacht</a>{% endif %}
+            </li>
+        {% empty %}<li class="muted">Keine Einträge.</li>{% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+</div>

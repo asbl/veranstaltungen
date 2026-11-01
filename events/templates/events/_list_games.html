@@ -1,0 +1,245 @@
+{% load events_extras l10n %}
+    <section class="feature" id="games-section">
+        <div class="section-heading-row">
+            <h2>Spiele-Mitbringliste ({{ event.games.count }}) {% include "events/_list_settings_link.html" %}</h2>
+            {% if event.games.all %}
+                <a class="btn secondary" href="{% url 'events:game_explain_print' event.pk %}" target="_blank" rel="noopener"><i class="fa-solid fa-print" aria-hidden="true"></i>Erklärbären drucken</a>
+            {% endif %}
+        </div>
+        {% include "events/_list_description.html" %}
+        {% if may_write %}<div class="section-add-row"><a class="btn section-add-btn" href="{% url 'events:game_create' event.pk %}"><i class="fa-solid fa-plus"></i>Spiel hinzufügen</a><a class="btn secondary section-add-btn" href="{% url 'events:game_bulk_create' event.pk %}"><i class="fa-solid fa-list"></i>Mehrere Spiele auf einmal</a></div>{% endif %}
+        {% if event.open_game_wishes %}
+            <div class="open-wishes-banner">
+                <strong><i class="fa-solid fa-triangle-exclamation"></i> Noch offene Spielewünsche ({{ event.open_game_wishes|length }}):</strong>
+                <div class="open-wishes-list">
+                    {% for game in event.open_game_wishes %}
+                        <a href="#game-{{ game.pk }}" class="pill warn">{{ game.name }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+        {% if event.games.all %}
+            <div class="game-list-wrapper">
+                <div class="game-list-controls">
+                    <button type="button" class="btn secondary fullscreen-toggle-btn" hidden><i class="fa-solid fa-expand" aria-hidden="true"></i><span>Vollbild</span></button>
+                    <input type="search" class="game-filter" placeholder="Spiele filtern (auch Kategorien & Erweiterungen)…" aria-label="Spiele filtern">
+                    <label>Sortieren nach
+                        <select class="game-sort-select">
+                            <option value="name:asc">Titel A–Z</option>
+                            <option value="owner:asc">Mitbringer A–Z</option>
+                            <option value="interest:desc">Meiste Interessenten</option>
+                            <option value="interest:asc">Wenigste Interessenten</option>
+                            <option value="rating:desc">BGG-Wertung (beste zuerst)</option>
+                            <option value="complexity:asc">Weight (leichteste zuerst)</option>
+                            <option value="complexity:desc">Weight (schwierigste zuerst)</option>
+                            <option value="players:desc">Max. Spielerzahl (meiste zuerst)</option>
+                            <option value="categories:asc">Kategorien A–Z</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="game-quick-filters" hidden>
+                    <label><input type="checkbox" data-game-filter="missingBringer"> Mitbringer gesucht</label>
+                    <label><input type="checkbox" data-game-filter="missingExplainer"> Erklärbär fehlt</label>
+                    {% if user.is_authenticated %}<label><input type="checkbox" data-game-filter="mine"> Meine Zusagen</label>{% endif %}
+                    <button type="button" class="btn secondary game-filter-reset">Filter zurücksetzen</button>
+                </div>
+                <p class="game-filter-count" role="status" aria-live="polite" hidden></p>
+                <p class="game-filter-empty" hidden>Keine Spiele passen zu diesen Filtern.</p>
+                <p class="game-fullscreen-feedback" role="status"></p>
+                <div class="games-list" role="list" aria-label="Spiele-Mitbringliste">
+                        {% for game in event.games.all %}
+                            <div class="games-list-item" role="listitem" id="game-{{ game.pk }}" data-name="{{ game.name|lower }}" data-owner="{% for claim in game.active_bring_claims %}{{ claim.user|display_name|lower }} {% endfor %}"
+                                data-interest="{{ game.interested_users.count|unlocalize }}"
+                                data-missing-bringer="{{ game.needs_bringer|yesno:'true,false' }}"
+                                data-missing-explainer="{% if game.active_explain_claims %}false{% else %}true{% endif %}"
+                                data-mine="{% if game.claimed_by_me or game.explained_by_me %}true{% else %}false{% endif %}"
+                                data-description="{{ game.description|default:''|lower }}"
+                                data-rating="{{ game.bgg_rating|default_if_none:''|unlocalize }}"
+                                data-complexity="{{ game.complexity|default_if_none:''|unlocalize }}"
+                                data-players="{{ game.max_players|default_if_none:''|unlocalize }}"
+                                data-categories="{{ game.bgg_categories|bgg_german_labels|join:', '|lower }}"
+                                data-expansions="{{ game.expansions|lower }}">
+                                  <details class="game-item-details">
+                                    <summary>
+                                      <span class="game-summary-title">
+                                        <span class="game-summary-name-row">
+                                          {% if game.thumbnail_url %}<img class="game-summary-thumb" src="{{ game.thumbnail_url }}" alt="Titelbild von {{ game.name }}" loading="lazy">{% endif %}
+                                          <strong>{{ game.name }}</strong>
+                                          {% if game.players_label %}<span class="game-summary-meta" title="Spielerzahl"><i class="fa-solid fa-users" aria-hidden="true"></i> {{ game.players_label }}</span>{% endif %}
+                                          {% if game.complexity_label %}<span class="game-summary-meta" title="Komplexität (BGG Weight: {{ game.complexity }} / 5)">{{ game.complexity_label }}</span>{% endif %}
+                                          {% if game.playtime_minutes %}<span class="game-summary-meta" title="Spieldauer"><i class="fa-solid fa-clock" aria-hidden="true"></i> {{ game.playtime_minutes }} Min.</span>{% endif %}
+                                          {% if game.bgg_id %}
+                                            <span class="game-bgg-badge">
+                                              <button type="button" class="game-bgg-toggle" aria-haspopup="true" aria-expanded="false" title="BGG-Details" aria-label="BGG-Details zu {{ game.name }}"><i class="fa-solid fa-dice-d20" aria-hidden="true"></i></button>
+                                              <div class="game-bgg-popup" hidden>
+                                                {% include "events/_game_bgg_details.html" %}
+                                              </div>
+                                            </span>
+                                          {% endif %}
+                                        </span>
+                                        {% if game.active_bring_claims %}
+                                          <small class="game-summary-bringers"><em>{% for claim in game.active_bring_claims %}{{ claim.user|display_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</em></small>
+                                        {% endif %}
+                                      </span>
+                                      <span class="game-summary-status">
+                                        <span class="game-explain-badge">
+                                          <button type="button" class="game-explain-toggle{% if not game.active_explain_claims %} is-missing{% endif %}{% if game.explained_by_me %} is-mine{% endif %}" aria-expanded="false" aria-controls="game-explain-popup-{{ game.pk }}" aria-label="{{ game.active_explain_claims|length }} Erklärbären für {{ game.name }}"{% if may_write and user.is_authenticated %} data-explain-url="{% url 'events:game_explain_claim_set' game.pk %}" aria-pressed="{{ game.explained_by_me|yesno:'true,false' }}" title="{% if game.explained_by_me %}Als Erklärbär austragen{% else %}Als Erklärbär eintragen{% endif %}"{% else %} title="Erklärbären anzeigen"{% endif %}><span aria-hidden="true">🐻</span> <span class="game-explain-count">{{ game.active_explain_claims|length }}</span></button>
+                                          <span class="game-explain-popup" id="game-explain-popup-{{ game.pk }}" hidden>
+                                            {% include "events/_game_explain_popup_content.html" %}
+                                          </span>
+                                        </span>
+                                        {% if game.claimed_by_me %}<span class="pill mine"><i class="fa-solid fa-check" aria-hidden="true"></i> Du bringst es mit</span>{% endif %}
+                                        {% if game.needs_bringer %}<span class="pill warn"><i class="fa-solid fa-triangle-exclamation"></i> Mitbringer gesucht</span>{% endif %}
+                                        {% if game.interested_users.count %}<span class="pill count-badge interest-count-badge {% if game.interested_users.count >= 5 %}interest-high{% elif game.interested_users.count >= 3 %}interest-medium{% else %}interest-low{% endif %}"><i class="fa-solid fa-star"></i> {{ game.interested_users.count }}</span>{% endif %}
+                                        {% if game.comments.count %}<span class="pill count-badge"><i class="fa-solid fa-comment"></i> {{ game.comments.count }}</span>{% endif %}
+                                      </span>
+                                    </summary>
+                                    <div class="game-item-content">
+                                    {% if game.created_by == user and may_write or can_manage %}
+                                        <div class="game-title-actions game-owner-actions">
+                                            <a class="btn link" href="{% url 'events:game_edit' game.pk %}"><i class="fa-solid fa-pen"></i>{% if game.created_by == user %}Bearbeiten{% else %}(Orga:) Bearbeiten{% endif %}</a>
+                                            <form class="inline" method="post" action="{% url 'events:game_delete' game.pk %}"
+                                                  onsubmit="return confirm('Achtung: Das Spiel „{{ game.name|escapejs }}“ wird inklusive aller Zusagen und Kommentare unwiderruflich gelöscht. Fortfahren?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn link"><i class="fa-solid fa-trash"></i>{% if game.created_by == user %}Aus der Liste entfernen{% else %}(Orga:) Löschen{% endif %}</button>
+                                            </form>
+                                        </div>
+                                    {% endif %}
+                                      <div class="game-participation">
+                                        <strong class="game-participation-heading">Status &amp; Aktionen</strong>
+                                      <div class="game-detail-section">
+                                        <strong>Wer bringt es mit?</strong>
+                                    {% if game.bring_claims.all %}
+                                        <div class="claims-line game-bring-claims muted">
+                                            {% for claim in game.bring_claims.all %}
+                                                <div class="claim-entry game-bring-claim">
+                                                    <div>{% user_link claim.user event %}{% if not claim.user_is_attending %} <span class="pill warn" title="Diese Person ist nicht (mehr) für die Veranstaltung angemeldet">⚠️ nicht angemeldet</span>{% endif %}</div>
+                                                    {% if claim.user == user and may_write or user.is_superuser %}
+                                                        <form class="game-bring-claim-action" method="post" action="{% url 'events:game_bring_claim_cancel' claim.pk %}">
+                                                            {% csrf_token %}
+                                                            <button type="submit" class="btn link"><i class="fa-solid fa-rotate-left"></i>{% if claim.user == user %}zurückziehen{% else %}(Orga:) Löschen{% endif %}</button>
+                                                        </form>
+                                                    {% endif %}
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <p class="muted">Noch keine Mitbringer eingetragen.</p>
+                                    {% endif %}
+                                    {% if not game.claimed_by_me and may_write %}
+                                        <form class="game-bring-add" method="post" action="{% action_url 'events:game_bring_claim_create' game.pk %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn link"><i class="fa-solid fa-hand-holding-heart"></i>{% if game.active_bring_claim_count %}ich bringe es auch mit{% else %}ich bringe es mit{% endif %}</button>
+                                        </form>
+                                    {% endif %}
+                                      </div>
+                                      <div class="game-detail-section game-explain-section">
+                                        {% include "events/_game_explain_section.html" %}
+                                      </div>
+                                      <div class="game-detail-section game-interest-section">
+                                        <strong>Interesse</strong>
+                                        <div class="game-interest-controls">
+                                    <details class="game-interest-details">
+                                        <summary>
+                                            {% if game.interested_users.count > 0 %}<span class="pill count-badge"><i class="fa-solid fa-star"></i> {{ game.interested_users.count }}</span> {% if game.interested_users.count == 1 %}Person hat{% else %}Personen haben{% endif %} Interesse
+                                            {% else %}Noch niemand hat Interesse{% endif %}
+                                        </summary>
+                                        <ul class="sublist">
+                                            {% for interest in game.interested_users.all %}
+                                                <li>{% user_link interest.user event %}</li>
+                                            {% empty %}
+                                                <li class="muted">Noch niemand.</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </details>
+                                    {% if may_write %}
+                                    <form class="inline" method="post" action="{% action_url 'events:game_interest_toggle' game.pk %}">
+                                        {% csrf_token %}
+                                        {% if game.interested_by_me %}
+                                            <button type="submit" class="btn link"><i class="fa-solid fa-star"></i>Ich habe kein Interesse mehr</button>
+                                        {% else %}
+                                            <button type="submit" class="btn link"><i class="fa-solid fa-star"></i>Ich habe Interesse an dem Spiel</button>
+                                        {% endif %}
+                                    </form>
+                                    {% endif %}
+                                        </div>
+                                      </div>
+                                      </div>
+                                      {% if game.bgg_id %}<div class="game-detail-section game-bgg-expanded"><strong>BGG-Informationen</strong>{% include "events/_game_bgg_details.html" with expanded=True %}</div>{% endif %}
+                                      <div class="game-detail-section">
+                                    <span class="muted small">(eingetragen von {{ game.created_by|display_name }})</span>
+                                    {% if game.expansions %}
+                                        <div class="game-expansions">
+                                          <strong>Erweiterungen</strong>
+                                          <div class="muted">{{ game.expansions|simple_markdown }}</div>
+                                        </div>
+                                    {% endif %}
+                                      </div>
+                                    {% if game.description %}
+                                      <div class="game-detail-section muted">
+                                        <strong>Beschreibung</strong>
+                                        <div class="game-description prose">{{ game.description|simple_markdown }}</div>
+                                      </div>
+                                    {% endif %}
+                                      <div id="game-comments-{{ game.pk }}" class="game-comments-panel game-detail-section">
+                                    <strong>Kommentare{% if game.comments.count %} ({{ game.comments.count }}){% endif %}</strong>
+                                        <ul class="sublist">
+                                            {% for comment in game.comments.all %}
+                                                <li class="comment-item">
+                                                    <div class="comment-body">
+                                                        <div class="comment-author">{% user_link comment.author event %}</div>
+                                                        <div class="comment-text">{{ comment.text|simple_markdown }}</div>
+                                                        {% if comment.author == user and may_write or can_manage %}
+                                                            <form id="game-comment-edit-{{ comment.pk }}" class="comment-edit-form" method="post" action="{% url 'events:game_comment_edit' comment.pk %}" hidden>
+                                                                {% csrf_token %}
+                                                                <div class="simple-editor">
+                                                                    <div class="simple-editor-toolbar">
+                                                                        <button type="button" data-wrap="**" title="Fett"><i class="fa-solid fa-bold"></i></button>
+                                                                        <button type="button" data-wrap="*" title="Kursiv"><i class="fa-solid fa-italic"></i></button>
+                                                                        <button type="button" data-prefix="- " title="Liste"><i class="fa-solid fa-list-ul"></i></button>
+                                                                    </div>
+                                                                    <label class="required-textarea-label">Kommentar <span class="required-badge">Pflichtfeld</span><textarea name="text" rows="2" required>{{ comment.text }}</textarea></label>
+                                                                </div>
+                                                                <button type="submit" class="btn secondary"><i class="fa-solid fa-check"></i>Speichern</button>
+                                                            </form>
+                                                        {% endif %}
+                                                    </div>
+                                                    {% if comment.author == user and may_write or can_manage %}
+                                                        <div class="comment-actions">
+                                                            <button type="button" class="btn link comment-toggle" data-target="game-comment-edit-{{ comment.pk }}"><i class="fa-solid fa-pen"></i>Bearbeiten{% if comment.author != user %} <span class="comment-action-context">(Orga)</span>{% endif %}</button>
+                                                            <form class="inline" method="post" action="{% url 'events:game_comment_delete' comment.pk %}"
+                                                                  onsubmit="return confirm('Achtung: Der Kommentar wird unwiderruflich gelöscht. Fortfahren?');">
+                                                                {% csrf_token %}
+                                                                <button type="submit" class="btn link"><i class="fa-solid fa-trash"></i>Löschen{% if comment.author != user %} <span class="comment-action-context">(Orga)</span>{% endif %}</button>
+                                                            </form>
+                                                        </div>
+                                                    {% endif %}
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% if may_write %}
+                                        <button type="button" class="btn link comment-toggle"><i class="fa-solid fa-comment"></i>Kommentieren</button>
+                                        <form method="post" action="{% action_url 'events:game_comment_create' game.pk %}" hidden>
+                                            {% csrf_token %}
+                                            <div class="simple-editor">
+                                                <div class="simple-editor-toolbar">
+                                                    <button type="button" data-wrap="**" title="Fett"><i class="fa-solid fa-bold"></i></button>
+                                                    <button type="button" data-wrap="*" title="Kursiv"><i class="fa-solid fa-italic"></i></button>
+                                                    <button type="button" data-prefix="- " title="Liste"><i class="fa-solid fa-list-ul"></i></button>
+                                                </div>
+                                                <label class="required-textarea-label">Kommentar <span class="required-badge">Pflichtfeld</span><textarea name="text" placeholder="Kommentar…" rows="2" required></textarea></label>
+                                            </div>
+                                            <button type="submit" class="btn secondary"><i class="fa-solid fa-comment"></i>Absenden</button>
+                                        </form>
+                                        {% endif %}
+                                      </div>
+                                    </div>
+                                  </details>
+                            </div>
+                        {% endfor %}
+                </div>
+            </div>
+        {% else %}
+            <p class="muted">Noch keine Spiele eingetragen.</p>
+        {% endif %}
+    </section>

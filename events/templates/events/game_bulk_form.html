@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Mehrere Spiele hinzufügen{% endblock %}
+{% block content %}
+    <h1>Mehrere Spiele für „{{ event.title }}“ hinzufügen</h1>
+    <form method="post" class="card game-bulk-form" data-bulk-search-url="{% url 'events:game_bgg_search' %}">
+        {% csrf_token %}
+        {% if form.errors %}
+            <div class="form-error-summary" role="alert" tabindex="-1">
+                <strong>Speichern nicht möglich</strong>
+                <p>Deine Eingaben sind weiterhin im Formular enthalten.</p>
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+        <p class="muted">Ein Spiel pro Zeile. Du kannst auch eine ganze Liste (z. B. aus einer Notiz) in ein Feld einfügen – jede Zeile wird dann zu einem eigenen Spiel. Beim Tippen schlagen wir passende BGG-Einträge vor; Spielerzahl, Dauer und Bild werden dann automatisch ergänzt.</p>
+        <div class="form-row">
+            {{ form.type.errors }}
+            <label for="{{ form.type.id_for_label }}">Typ (gilt für alle Spiele)</label>
+            {{ form.type }}
+        </div>
+        <label class="game-explain-check game-bulk-explain-all" hidden><input type="checkbox"> <span><span aria-hidden="true">🐻</span> Ich kann alle diese Spiele erklären</span></label>
+        <div class="game-bulk-rows" role="list" aria-label="Spiele">
+            {% for row in form.rows %}
+                <div class="game-bulk-row" role="listitem">
+                    <div class="bgg-suggestion-wrap">
+                        <label class="game-bulk-label" for="bulk-name-{{ forloop.counter }}">Spiel {{ forloop.counter }}</label>
+                        <input type="text" name="name" id="bulk-name-{{ forloop.counter }}" value="{{ row.name }}" maxlength="200" autocomplete="off" placeholder="Spieltitel">
+                        <div class="bgg-suggestions" hidden></div>
+                        <span class="bgg-lookup-status" role="status"></span>
+                    </div>
+                    <label class="game-bulk-bgg-id">BGG-ID <span class="muted small">(optional)</span>
+                        <input type="text" name="bgg_id" value="{{ row.bgg_id }}" inputmode="numeric" pattern="[0-9]*" size="7">
+                    </label>
+                    <label class="game-explain-check game-bulk-explain" title="Ich kann das Spiel erklären"><input type="checkbox" name="explain" value="{{ forloop.counter0 }}"{% if row.explain %} checked{% endif %}> <span><span aria-hidden="true">🐻</span> erkläre ich</span></label>
+                    <button type="button" class="btn link game-bulk-remove" hidden aria-label="Zeile entfernen" title="Zeile entfernen"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+                </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="btn secondary game-bulk-add-row" hidden><i class="fa-solid fa-plus" aria-hidden="true"></i>Weitere Zeile</button>
+        <p class="muted small">Spiele, die schon auf der Liste stehen, werden nicht doppelt angelegt – du wirst dort stattdessen als Mitbringer eingetragen (außer beim Typ „Wunsch“). Mit „erkläre ich“ trägst du dich gleich als Erklärbär ein. Beschreibung und Erweiterungen kannst du danach beim einzelnen Spiel ergänzen.</p>
+        <div class="game-bulk-actions">
+            <button type="submit" class="btn"><i class="fa-solid fa-plus" aria-hidden="true"></i><span class="game-bulk-submit-label">Spiele hinzufügen</span></button>
+            <a class="btn secondary" href="{% url 'events:event_detail' event.pk %}#games-section">Abbrechen</a>
+        </div>
+    </form>
+    {{ existing_names|json_script:"game-bulk-existing" }}
+{% endblock %}
+{% block extra_js %}
+    <script src="{% static 'events/js/game-bulk-form.js' %}"></script>
+{% endblock %}

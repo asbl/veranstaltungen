@@ -1,0 +1,110 @@
+{% extends "events/_print_base.html" %}
+{% load events_extras %}
+{% block title %}Erklärbären{% endblock %}
+{% block kicker %}Spiele und Erklärbären{% endblock %}
+{% block back_anchor %}games-section{% endblock %}
+{% block back_label %}Zur Spieleliste{% endblock %}
+{% block style %}
+        .game-list { margin: 0; padding: 0; list-style: none; }
+        .game { display: grid; grid-template-columns: minmax(0, 1fr) 13rem; gap: 1rem; padding: .7rem 0; border-bottom: 1px solid var(--line); }
+        .game-main { min-width: 0; overflow-wrap: anywhere; }
+        .game-media { float: left; display: flex; flex-direction: column; align-items: center; gap: .2rem; width: 17mm; margin: .1rem .6rem .2rem 0; }
+        .game-image { width: 15mm; height: 18mm; object-fit: contain; }
+        .game-qr { display: block; color: var(--muted); font-size: .6rem; text-align: center; text-decoration: none; line-height: 1.1; }
+        .game-qr .qr { display: block; width: 17mm; height: 17mm; }
+        .game-name { font-size: 1.1rem; margin: 0; color: var(--green); line-height: 1.2; }
+        .game-description { font-size: .8rem; line-height: 1.35; margin: .2rem 0 0; }
+        .game-description p, .game-description ul { margin: .25rem 0; }
+        .game-main .note { margin: .15rem 0 0; }
+        .game-rail { display: flex; flex-direction: column; gap: .4rem; font-size: .78rem; }
+        .mechanics { gap: .15rem; margin: .15rem 0 .1rem; }
+        .badge-mechanic { padding: 0 .35em; border: 1px solid var(--line); background: none; color: var(--muted); font-size: .6rem; line-height: 1.35; }
+        .explainers { border: 1.5px solid var(--green); border-radius: 6px; padding: .3rem .45rem .45rem; break-inside: avoid; }
+        .explainers-label { display: block; color: var(--green); font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+        .explainers .badges { margin-top: .25rem; }
+        .badge-explainer { background: var(--green); color: #fff; font-weight: 600; }
+        .badge-explainer .note { color: #d8e6d3; }
+        .recommendations { margin: 0 0 1rem; padding-bottom: .6rem; border-bottom: 3px solid var(--green); }
+        .recommendations h2 { font-size: 1.05rem; color: var(--green); margin: 0 0 .3rem; }
+        .recommendations-intro { margin: 0 0 .4rem; }
+        .recommendation-list { columns: 2; column-gap: 1.2rem; margin: 0; padding: 0; list-style: none; font-size: .8rem; line-height: 1.3; }
+        .recommendation { break-inside: avoid; margin: 0 0 .45rem; }
+        .recommendation-title { display: block; color: var(--green); font-weight: 700; }
+        .recommendation-title .note { font-weight: 400; }
+        .recommendation a { color: inherit; text-decoration: none; }
+        .recommendation a:hover { text-decoration: underline; }
+        @media (max-width: 40rem) { .game { grid-template-columns: 1fr; } .recommendation-list { columns: 1; } }
+        @media print {
+            /* Mit Kurzfassung sind die Karten kurz genug, um nie zu zerreißen. */
+            .game { grid-template-columns: minmax(0, 1fr) 50mm; break-inside: avoid; }
+            .game-name { break-after: avoid; }
+            .game-description { orphans: 3; widows: 3; }
+            /* Übersicht als eigene Seite, z. B. zum Aushängen */
+            .recommendations { break-after: page; border-bottom: 0; }
+        }
+{% endblock %}
+{% block content %}
+    {% if recommendations %}
+        <section class="recommendations">
+            <h2>Spieleempfehlungen</h2>
+            <p class="note recommendations-intro">Je Kategorie bis zu {{ recommendation_limit }} Spiele: zuerst mit Erklärbär, dann nach BGG-Wertung.</p>
+            <ul class="recommendation-list">
+                {% for title, hint, recommended, more in recommendations %}
+                    <li class="recommendation">
+                        <span class="recommendation-title">{{ title }}{% if hint %} <span class="note">({{ hint }})</span>{% endif %}</span>
+                        {% for game in recommended %}<a href="#game-{{ game.pk }}">{{ game.name }}</a>{% if not forloop.last %} · {% endif %}{% endfor %}{% if more %} <span class="note">und {{ more }} weitere</span>{% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+    <ul class="game-list">
+        {% for game in games %}
+            <li class="game" id="game-{{ game.pk }}">
+                <div class="game-main">
+                    {% if game.thumbnail_url or game.bgg_qr %}
+                        <div class="game-media">
+                            {% if game.thumbnail_url %}<img class="game-image" src="{{ game.thumbnail_url }}" alt="Titelbild von {{ game.name }}" loading="eager">{% endif %}
+                            {% if game.bgg_qr %}<a class="game-qr" href="{{ game.bgg_url }}">{{ game.bgg_qr }}BGG</a>{% endif %}
+                        </div>
+                    {% endif %}
+                    <h2 class="game-name">{{ game.name }}</h2>
+                    {% with mechanics=game.bgg_mechanics|bgg_german_labels %}
+                        {% if mechanics %}<ul class="badges mechanics" aria-label="Mechaniken">{% for mechanic in mechanics %}<li class="badge badge-mechanic">{{ mechanic }}</li>{% endfor %}</ul>{% endif %}
+                    {% endwith %}
+                    {% if game.summary %}
+                        <div class="game-description">{{ game.summary|linebreaksbr }}</div>
+                    {% elif game.bgg_translation.text_de %}
+                        <div class="game-description">{{ game.bgg_translation.text_de|linebreaksbr }}</div>
+                        <p class="note">{{ game.bgg_translation.attribution }}</p>
+                    {% elif game.description %}
+                        <div class="game-description">{{ game.description|simple_markdown }}</div>
+                    {% elif game.bgg_description %}
+                        <div class="game-description">{{ game.bgg_description|bgg_description_text|linebreaksbr }}</div>
+                    {% endif %}
+                </div>
+                <div class="game-rail">
+                    <ul class="badges" aria-label="Spieldetails">
+                        <li class="badge"><b>Spieler</b> {% if game.min_players and game.min_players == game.max_players %}{{ game.min_players }}{% else %}{{ game.players_label|default:"–" }}{% endif %}</li>
+                        <li class="badge"><b>Dauer</b> {% if game.playtime_minutes %}{{ game.playtime_minutes }} Min.{% else %}–{% endif %}</li>
+                        <li class="badge"><b>Komplexität</b> {% if game.complexity %}{{ game.complexity_label }} · {{ game.complexity|floatformat:1 }}/5{% else %}–{% endif %}</li>
+                    </ul>
+                    <div class="explainers">
+                        <span class="explainers-label">Erklärbären</span>
+                        {% with claims=game.explain_claims.all %}
+                            {% if claims %}
+                                <ul class="badges">
+                                    {% for claim in claims %}<li class="badge badge-explainer">{{ claim.user|display_name }}{% if not claim.user_is_attending %} <span class="note">(nicht angemeldet)</span>{% endif %}</li>{% endfor %}
+                                </ul>
+                            {% endif %}
+                        {% endwith %}
+                        <span class="write-in" aria-hidden="true"></span>
+                        <span class="write-in" aria-hidden="true"></span>
+                    </div>
+                </div>
+            </li>
+        {% empty %}
+            <li class="note">Noch keine Spiele eingetragen.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

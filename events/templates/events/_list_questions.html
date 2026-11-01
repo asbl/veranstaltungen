@@ -1,0 +1,153 @@
+{% load events_extras %}
+    <section class="feature" id="questions-section">
+        <h2>Fragen &amp; Antworten ({{ questions|length }}) {% include "events/_list_settings_link.html" %}</h2>
+        {% include "events/_list_description.html" %}
+        {% if may_write %}
+            <button type="button" class="btn section-add-btn comment-toggle" data-target="question-create-form"><i class="fa-solid fa-plus"></i>Frage stellen</button>
+            <form id="question-create-form" class="inline-create-form" method="post" action="{% action_url 'events:question_create' event.pk %}" hidden>
+                {% csrf_token %}
+                <div class="simple-editor">
+                    <div class="simple-editor-toolbar">
+                        <button type="button" data-wrap="**" title="Fett"><i class="fa-solid fa-bold"></i></button>
+                        <button type="button" data-wrap="*" title="Kursiv"><i class="fa-solid fa-italic"></i></button>
+                        <button type="button" data-prefix="- " title="Liste"><i class="fa-solid fa-list-ul"></i></button>
+                    </div>
+                    <label class="required-textarea-label">Frage <span class="required-badge">Pflichtfeld</span><textarea name="text" placeholder="Deine Frage…" rows="3" required></textarea></label>
+                </div>
+                <button type="submit" class="btn secondary"><i class="fa-solid fa-plus"></i>Frage stellen</button>
+            </form>
+        {% endif %}
+        <ul class="item-list">
+            {% for question in questions %}
+                <li id="question-{{ question.pk }}">
+                    <p class="qa-author">{% user_link question.author event %}</p>
+                    <div class="idea-text">{{ question.text|simple_markdown }}</div>
+                    <div class="qa-actions">
+                        {% if may_write %}{% include "events/_reactions.html" with obj=question like_url_name="events:question_like_toggle" reaction_url_name="events:question_reaction_toggle" %}{% endif %}
+                        {% if question.author == user and may_write or can_manage %}
+                            <button type="button" class="btn link comment-toggle" data-target="question-edit-form-{{ question.pk }}"><i class="fa-solid fa-pen"></i>{% if question.author == user %}Bearbeiten{% else %}(Orga:) Bearbeiten{% endif %}</button>
+                            <form class="inline" method="post" action="{% url 'events:question_delete' question.pk %}"
+                                  onsubmit="return confirm('Achtung: Die Frage wird inklusive aller Antworten unwiderruflich gelöscht. Fortfahren?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn link"><i class="fa-solid fa-trash"></i>{% if question.author == user %}löschen{% else %}(Orga:) Löschen{% endif %}</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                    {% if question.author == user and may_write or can_manage %}
+                        <form id="question-edit-form-{{ question.pk }}" class="qa-edit-form" method="post" action="{% url 'events:question_update' question.pk %}" hidden>
+                            {% csrf_token %}
+                            <div class="simple-editor">
+                                <div class="simple-editor-toolbar">
+                                    <button type="button" data-wrap="**" title="Fett"><i class="fa-solid fa-bold"></i></button>
+                                    <button type="button" data-wrap="*" title="Kursiv"><i class="fa-solid fa-italic"></i></button>
+                                    <button type="button" data-prefix="- " title="Liste"><i class="fa-solid fa-list-ul"></i></button>
+                                </div>
+                                <label class="required-textarea-label">Frage <span class="required-badge">Pflichtfeld</span><textarea name="text" rows="3" required>{{ question.text }}</textarea></label>
+                            </div>
+                            <button type="submit" class="btn link"><i class="fa-solid fa-check"></i>Speichern</button>
+                        </form>
+                    {% endif %}
+
+                    <div class="qa-thread">
+                        {% for answer in question.top_answers %}
+                            <div class="qa-answer">
+                                <p class="qa-author">{% user_link answer.author event %}</p>
+                                <div class="prose">{{ answer.text|simple_markdown }}</div>
+                                <div class="qa-actions">
+                                    {% if may_write %}{% include "events/_reactions.html" with obj=answer like_url_name="events:answer_like_toggle" reaction_url_name="events:answer_reaction_toggle" %}{% endif %}
+                                    {% if answer.author == user and may_write or can_manage %}
+                                        <button type="button" class="btn link comment-toggle" data-target="answer-edit-form-{{ answer.pk }}"><i class="fa-solid fa-pen"></i>{% if answer.author == user %}Bearbeiten{% else %}(Orga:) Bearbeiten{% endif %}</button>
+                                        <form class="inline" method="post" action="{% url 'events:answer_delete' answer.pk %}"
+                                              onsubmit="return confirm('Achtung: Die Antwort wird unwiderruflich gelöscht. Fortfahren?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn link"><i class="fa-solid fa-trash"></i>{% if answer.author == user %}löschen{% else %}(Orga:) Löschen{% endif %}</button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                                {% if answer.author == user and may_write or can_manage %}
+                                    <form id="answer-edit-form-{{ answer.pk }}" class="qa-edit-form" method="post" action="{% url 'events:answer_update' answer.pk %}" hidden>
+                                        {% csrf_token %}
+                                        <div class="simple-editor">
+                                            <div class="simple-editor-toolbar">
+                                                <button type="button" data-wrap="**" title="Fett"><i class="fa-solid fa-bold"></i></button>
+                                                <button type="button" data-wrap="*" title="Kursiv"><i class="fa-solid fa-italic"></i></button>
+                                                <button type="button" data-prefix="- " title="Liste"><i class="fa-solid fa-list-ul"></i></button>
+                                            </div>
+                                            <label class="required-textarea-label">Antwort <span class="required-badge">Pflichtfeld</span><textarea name="text" rows="2" required>{{ answer.text }}</textarea></label>
+                                        </div>
+                                        <button type="submit" class="btn link"><i class="fa-solid fa-check"></i>Speichern</button>
+                                    </form>
+                                {% endif %}
+
+                                {% for reply in answer.replies.all %}
+                                    <div class="qa-reply">
+                                        <p class="qa-author">{% user_link reply.author event %}</p>
+                                        <div class="prose">{{ reply.text|simple_markdown }}</div>
+                                        <div class="qa-actions">
+                                            {% if may_write %}{% include "events/_reactions.html" with obj=reply like_url_name="events:answer_like_toggle" reaction_url_name="events:answer_reaction_toggle" %}{% endif %}
+                                            {% if reply.author == user and may_write or can_manage %}
+                                                <button type="button" class="btn link comment-toggle" data-target="answer-edit-form-{{ reply.pk }}"><i class="fa-solid fa-pen"></i>{% if reply.author == user %}Bearbeiten{% else %}(Orga:) Bearbeiten{% endif %}</button>
+                                                <form class="inline" method="post" action="{% url 'events:answer_delete' reply.pk %}"
+                                                      onsubmit="return confirm('Achtung: Die Antwort wird unwiderruflich gelöscht. Fortfahren?');">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn link"><i class="fa-solid fa-trash"></i>{% if reply.author == user %}löschen{% else %}(Orga:) Löschen{% endif %}</button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                        {% if reply.author == user and may_write or can_manage %}
+                                            <form id="answer-edit-form-{{ reply.pk }}" class="qa-edit-form" method="post" action="{% url 'events:answer_update' reply.pk %}" hidden>
+                                                {% csrf_token %}
+                                                <div class="simple-editor">
+                                                    <div class="simple-editor-toolbar">
+                                                        <button type="button" data-wrap="**" title="Fett"><i class="fa-solid fa-bold"></i></button>
+                                                        <button type="button" data-wrap="*" title="Kursiv"><i class="fa-solid fa-italic"></i></button>
+                                                        <button type="button" data-prefix="- " title="Liste"><i class="fa-solid fa-list-ul"></i></button>
+                                                    </div>
+                                                    <label class="required-textarea-label">Antwort <span class="required-badge">Pflichtfeld</span><textarea name="text" rows="2" required>{{ reply.text }}</textarea></label>
+                                                </div>
+                                                <button type="submit" class="btn link"><i class="fa-solid fa-check"></i>Speichern</button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+
+                                {% if may_write %}
+                                <button type="button" class="btn link comment-toggle"><i class="fa-solid fa-reply"></i>Antworten</button>
+                                <form class="qa-answer-form" method="post" action="{% action_url 'events:answer_reply_create' answer.pk %}" hidden>
+                                    {% csrf_token %}
+                                    <div class="simple-editor">
+                                        <div class="simple-editor-toolbar">
+                                            <button type="button" data-wrap="**" title="Fett"><i class="fa-solid fa-bold"></i></button>
+                                            <button type="button" data-wrap="*" title="Kursiv"><i class="fa-solid fa-italic"></i></button>
+                                            <button type="button" data-prefix="- " title="Liste"><i class="fa-solid fa-list-ul"></i></button>
+                                        </div>
+                                        <label class="required-textarea-label">Antwort <span class="required-badge">Pflichtfeld</span><textarea name="text" placeholder="Auf diese Antwort antworten…" rows="2" required></textarea></label>
+                                    </div>
+                                    <button type="submit" class="btn link"><i class="fa-solid fa-reply"></i>Absenden</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if may_write %}
+                    <button type="button" class="btn link comment-toggle"><i class="fa-solid fa-reply"></i>Antworten</button>
+                    <form class="qa-answer-form" method="post" action="{% action_url 'events:answer_create' question.pk %}" hidden>
+                        {% csrf_token %}
+                        <div class="simple-editor">
+                            <div class="simple-editor-toolbar">
+                                <button type="button" data-wrap="**" title="Fett"><i class="fa-solid fa-bold"></i></button>
+                                <button type="button" data-wrap="*" title="Kursiv"><i class="fa-solid fa-italic"></i></button>
+                                <button type="button" data-prefix="- " title="Liste"><i class="fa-solid fa-list-ul"></i></button>
+                            </div>
+                            <label class="required-textarea-label">Antwort <span class="required-badge">Pflichtfeld</span><textarea name="text" placeholder="Antworten…" rows="2" required></textarea></label>
+                        </div>
+                        <button type="submit" class="btn link"><i class="fa-solid fa-reply"></i>Absenden</button>
+                    </form>
+                    {% endif %}
+                </li>
+            {% empty %}
+                <li class="muted">Noch keine Fragen.</li>
+            {% endfor %}
+        </ul>
+    </section>

@@ -1,0 +1,18 @@
+{% load events_extras %}
+<strong>Alle</strong>
+<p class="small">Schon gemacht: {% for person in item.completed_by.all %}{{ person|display_name }}{% if not forloop.last %}, {% endif %}{% empty %}Noch niemand{% endfor %}</p>
+{% if may_write %}
+{% if request.user.is_authenticated %}
+<form method="post" action="{% url 'events:planning_item_participate' event.pk item.pk %}">
+    {% csrf_token %}
+    {% if request.user in item.completed_by.all %}
+    <input type="hidden" name="remove" value="on">
+    <button type="submit" class="btn secondary advert-participation-btn"><i class="fa-solid fa-xmark" aria-hidden="true"></i>Eintrag zurücknehmen</button>
+    {% else %}
+    <button type="submit" class="btn advert-participation-btn"><i class="fa-solid fa-check" aria-hidden="true"></i>Habe ich gemacht</button>
+    {% endif %}
+</form>
+{% else %}
+<a class="btn advert-participation-btn" href="{% action_url 'events:planning_item_participate' event.pk item.pk %}">Anmelden und mitmachen</a>
+{% endif %}
+{% endif %}

@@ -1,0 +1,7 @@
+<h2 id="planning-field-title">{{ heading }}: {{ item.title }}</h2>
+<form method="post" action="{{ request.path }}" class="card" data-planning-field-form>
+{% csrf_token %}{% include "events/_form_error_summary.html" %}
+{% for field in form %}{% if field.is_hidden %}{{ field }}{% else %}{% include "events/_planning_form_field.html" %}{% endif %}{% endfor %}
+<button class="btn" type="submit">{{ save_label }}</button>
+<a class="btn secondary" data-planning-cancel href="{% url 'events:event_detail' event.pk %}#planning-{{ item.pk }}">Abbrechen</a>
+</form>

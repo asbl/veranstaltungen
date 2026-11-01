@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Angebot/Workshop {% if slot %}bearbeiten{% else %}anbieten{% endif %}{% endblock %}
+{% block content %}
+    <h1>Angebot/Workshop für „{{ event.title }}“ {% if slot %}bearbeiten{% else %}anbieten{% endif %}</h1>
+    <form method="post" class="card">
+        {% csrf_token %}
+        {% include "events/_form_error_summary.html" %}
+        {% for field in form %}
+            {% if field.name == "description" %}
+                {{ field.errors }}
+                <label for="{{ field.id_for_label }}">{{ field.label }} {% include "events/_required_badge.html" with field=field %}</label>
+                {% include "events/_simple_editor_field.html" with field=field %}
+            {% elif field.name == "allow_waitlist" %}
+                <details class="form-more-options"{% if field.value %} open{% endif %}>
+                    <summary>Weitere Optionen</summary>
+                    <p class="form-row">
+                        {{ field.errors }}
+                        {{ field }}
+                        <label for="{{ field.id_for_label }}">{{ field.label }} {% include "events/_required_badge.html" with field=field %}</label>
+                        {% if field.help_text %}<span class="muted small">{{ field.help_text }}</span>{% endif %}
+                    </p>
+                </details>
+            {% else %}
+                <p class="form-row">
+                    {{ field.errors }}
+                    <label for="{{ field.id_for_label }}">{{ field.label }} {% include "events/_required_badge.html" with field=field %}</label>
+                    {{ field }}
+                    {% if field.help_text %}<span class="muted small">{{ field.help_text }}</span>{% endif %}
+                </p>
+            {% endif %}
+        {% endfor %}
+        <button type="submit" class="btn">{% if slot %}<i class="fa-solid fa-check"></i>Speichern{% else %}<i class="fa-solid fa-plus"></i>Anbieten{% endif %}</button>
+        <a class="btn secondary" href="{% url 'events:event_detail' event.pk %}#slots-section">Abbrechen</a>
+    </form>
+{% endblock %}
+{% block extra_js %}
+    <script src="{% static 'events/js/simple-editor.js' %}"></script>
+{% endblock %}

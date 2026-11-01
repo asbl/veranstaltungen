@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{% if item %}Eintrag bearbeiten{% else %}Eintrag hinzufügen{% endif %}{% endblock %}
+{% block content %}
+    <h1>{% if item %}Eintrag in der Mitbringliste von „{{ event.title }}“ bearbeiten{% else %}Eintrag zur Mitbringliste von „{{ event.title }}“ hinzufügen{% endif %}</h1>
+    <form method="post" class="card">
+        {% csrf_token %}
+        {% include "events/_form_error_summary.html" %}
+        {{ form.title.errors }}
+        <p class="form-row">
+            <label for="{{ form.title.id_for_label }}">{{ form.title.label }} {% include "events/_required_badge.html" with field=form.title %}</label>
+            {{ form.title }}
+        </p>
+        {{ form.needed_quantity.errors }}
+        <p class="form-row">
+            <label for="{{ form.needed_quantity.id_for_label }}">{{ form.needed_quantity.label }} {% include "events/_required_badge.html" with field=form.needed_quantity %}</label>
+            {{ form.needed_quantity }}
+            {% if form.needed_quantity.help_text %}<span class="muted small">{{ form.needed_quantity.help_text }}</span>{% endif %}
+        </p>
+        {{ form.unit.errors }}
+        <p class="form-row">
+            <label for="{{ form.unit.id_for_label }}">{{ form.unit.label }} {% include "events/_required_badge.html" with field=form.unit %}</label>
+            {{ form.unit }}
+            {% if form.unit.help_text %}<span class="muted small">{{ form.unit.help_text }}</span>{% endif %}
+        </p>
+        <details class="form-more-options"{% if item and item.is_variable %} open{% endif %}>
+            <summary>Weitere Optionen</summary>
+            <p class="muted small">Alternative zur festen Soll-Menge: die Sollmenge steigt automatisch mit der Anzahl der Anmeldungen. Feste und variable Sollmenge schließen sich gegenseitig aus.</p>
+            {{ form.variable_quantity.errors }}
+            <p class="form-row">
+                <label for="{{ form.variable_quantity.id_for_label }}">{{ form.variable_quantity.label }} {% include "events/_required_badge.html" with field=form.variable_quantity %}</label>
+                {{ form.variable_quantity }}
+                {% if form.variable_quantity.help_text %}<span class="muted small">{{ form.variable_quantity.help_text }}</span>{% endif %}
+            </p>
+            {{ form.variable_per_persons.errors }}
+            <p class="form-row">
+                <label for="{{ form.variable_per_persons.id_for_label }}">{{ form.variable_per_persons.label }} {% include "events/_required_badge.html" with field=form.variable_per_persons %}</label>
+                {{ form.variable_per_persons }}
+                {% if form.variable_per_persons.help_text %}<span class="muted small">{{ form.variable_per_persons.help_text }}</span>{% endif %}
+            </p>
+        </details>
+        {{ form.comment.errors }}
+        <label for="{{ form.comment.id_for_label }}">{{ form.comment.label }} {% include "events/_required_badge.html" with field=form.comment %}</label>
+        {% include "events/_simple_editor_field.html" with field=form.comment %}
+        <button type="submit" class="btn">{% if item %}<i class="fa-solid fa-floppy-disk"></i>Speichern{% else %}<i class="fa-solid fa-plus"></i>Hinzufügen{% endif %}</button>
+        <a class="btn secondary" href="{% url 'events:event_detail' event.pk %}#potluck-section">Abbrechen</a>
+    </form>
+{% endblock %}
+{% block extra_js %}
+    <script src="{% static 'events/js/simple-editor.js' %}"></script>
+{% endblock %}

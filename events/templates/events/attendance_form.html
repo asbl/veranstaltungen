@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% load events_extras %}
+{% block title %}Anmeldung zu {{ event.title }}{% endblock %}
+{% block content %}
+    <h1>Anmeldung zu „{{ event.title }}“</h1>
+    <form method="post" class="card attendance-form">
+        {% csrf_token %}
+        {% include "events/_form_error_summary.html" with formset=formset %}
+
+        <h2 class="section-heading">
+            {% if editing_other %}Anmeldung von {{ attendance.display_name }} bearbeiten{% else %}Deine Anmeldung{% endif %}
+        </h2>
+        <p class="muted">
+            {% if editing_other %}
+                Der persönliche Anzeigename wird zentral im Profil dieses Accounts verwaltet.
+            {% else %}
+                Du meldest dich selbst als <strong>{{ user|display_name }}</strong> an. Weitere Familienmitglieder oder Gäste trägst du unten jeweils als eigene Person ein.
+            {% endif %}
+        </p>
+        <div class="attendee-row main-row">
+            <div class="field name-field">
+                <span class="field-label">Angemeldete Person</span>
+                <strong>{% if attendance %}{{ attendance.display_name }}{% else %}{{ user|display_name }}{% endif %}</strong>
+            </div>
+            <div class="field status-field">
+                <span class="field-label">Status {% include "events/_required_badge.html" with field=form.role %}</span>
+                <div class="pill-group">{{ form.role }}</div>
+                {{ form.role.errors }}
+            </div>
+            <div class="field days-field">
+                <span class="field-label">Anwesend an {% include "events/_required_badge.html" with field=form.days %}</span>
+                <div class="pill-group">{{ form.days }}</div>
+                {{ form.days.errors }}
+            </div>
+            <div class="field invited-by-wrapper" id="invited-by-wrapper">
+                <span class="field-label">Eingeladen durch {% include "events/_required_badge.html" with field=form.invited_by %}</span>
+                {{ form.invited_by }}
+                {{ form.invited_by.errors }}
+            </div>
+            <div class="field comment-field">
+                <span class="field-label">Kommentar {% include "events/_required_badge.html" with field=form.comment %}</span>
+                {{ form.comment }}
+                {{ form.comment.errors }}
+            </div>
+        </div>
+
+        <h2 class="section-heading">Zusätzlich angemeldete Personen</h2>
+        <p class="muted">Optional: jedes weitere Familienmitglied und jeden Gast in einer eigenen Zeile eintragen. Für jede zusätzliche Person sind Name, Status und mindestens ein Anwesenheitstag erforderlich.</p>
+
+        <div class="guest-section">
+        {{ formset.management_form }}
+        <table class="guest-table">
+            <thead>
+                <tr>
+                    <th>Name <span class="required-badge">Pflichtfeld</span></th>
+                    <th>Status <span class="required-badge">Pflichtfeld</span></th>
+                    <th>Anwesend an <span class="required-badge">Pflichtfeld</span></th>
+                    <th class="col-action"></th>
+                </tr>
+            </thead>
+            <tbody id="guest-rows">
+                {% for person_form in formset %}
+                    <tr class="guest-row">
+                        <td>
+                            {{ person_form.id }}
+                            {{ person_form.name }}
+                            {{ person_form.name.errors }}
+                            {{ person_form.non_field_errors }}
+                        </td>
+                        <td><div class="pill-group">{{ person_form.role }}</div>{{ person_form.role.errors }}</td>
+                        <td><div class="pill-group">{{ person_form.days }}</div>{{ person_form.days.errors }}</td>
+                        <td class="col-action">
+                            {% if person_form.instance.pk %}
+                                <label class="delete-field">{{ person_form.DELETE }} entfernen</label>
+                            {% else %}
+                                <button type="button" class="remove-row-btn" data-remove-row title="Zeile entfernen" aria-label="Zeile entfernen">✕</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <template id="empty-guest-template">
+            <tr class="guest-row">
+                <td>{{ formset.empty_form.name }}</td>
+                <td><div class="pill-group">{{ formset.empty_form.role }}</div></td>
+                <td><div class="pill-group">{{ formset.empty_form.days }}</div></td>
+                <td class="col-action">
+                    <button type="button" class="remove-row-btn" data-remove-row title="Zeile entfernen" aria-label="Zeile entfernen">✕</button>
+                </td>
+            </tr>
+        </template>
+
+        <button type="button" class="btn secondary" id="add-guest-btn"><i class="fa-solid fa-plus"></i>Weitere Person hinzufügen</button>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn"><i class="fa-solid fa-floppy-disk"></i>Speichern</button>
+        </div>
+    </form>
+
+    {% if attendance.pk %}
+        <form method="post" action="{% url 'events:attendance_cancel' attendance.pk %}" class="attendance-cancel-form">
+            {% csrf_token %}
+            <button type="submit" class="btn secondary"><i class="fa-solid fa-rotate-left"></i>{% if editing_other %}(Orga:) Anmeldung löschen{% else %}Anmeldung zurückziehen{% endif %}</button>
+        </form>
+    {% endif %}
+
+    <script>
+        (function () {
+            const invitedByWrapper = document.getElementById("invited-by-wrapper");
+            const roleInputs = document.querySelectorAll("input.role-select");
+
+            function updateInvitedByVisibility() {
+                const checked = document.querySelector("input.role-select:checked");
+                invitedByWrapper.style.display = checked && checked.value === "guest" ? "" : "none";
+            }
+
+            roleInputs.forEach((input) => input.addEventListener("change", updateInvitedByVisibility));
+            updateInvitedByVisibility();
+        })();
+
+        (function () {
+            const prefix = "{{ formset.prefix }}";
+            const totalForms = document.getElementById("id_" + prefix + "-TOTAL_FORMS");
+            const rowsContainer = document.getElementById("guest-rows");
+            const template = document.getElementById("empty-guest-template");
+
+            function reindexRows() {
+                const rows = rowsContainer.querySelectorAll(".guest-row");
+                rows.forEach((row, index) => {
+                    row.querySelectorAll("[name], [id], label[for]").forEach((el) => {
+                        if (el.hasAttribute("name")) {
+                            el.setAttribute("name", el.getAttribute("name").replace(/-\d+-/, `-${index}-`));
+                        }
+                        if (el.hasAttribute("id")) {
+                            el.setAttribute("id", el.getAttribute("id").replace(/-\d+-/, `-${index}-`));
+                        }
+                        if (el.hasAttribute("for")) {
+                            el.setAttribute("for", el.getAttribute("for").replace(/-\d+-/, `-${index}-`));
+                        }
+                    });
+                });
+                totalForms.value = rows.length;
+            }
+
+            document.getElementById("add-guest-btn").addEventListener("click", () => {
+                const index = rowsContainer.querySelectorAll(".guest-row").length;
+                const fragment = template.content.cloneNode(true);
+                fragment.querySelectorAll("[name], [id], label[for]").forEach((el) => {
+                    if (el.hasAttribute("name")) {
+                        el.setAttribute("name", el.getAttribute("name").replace("__prefix__", index));
+                    }
+                    if (el.hasAttribute("id")) {
+                        el.setAttribute("id", el.getAttribute("id").replace("__prefix__", index));
+                    }
+                    if (el.hasAttribute("for")) {
+                        el.setAttribute("for", el.getAttribute("for").replace("__prefix__", index));
+                    }
+                });
+                fragment.querySelector("[data-remove-row]").addEventListener("click", (e) => {
+                    e.target.closest(".guest-row").remove();
+                    reindexRows();
+                });
+                rowsContainer.appendChild(fragment);
+                totalForms.value = rowsContainer.querySelectorAll(".guest-row").length;
+            });
+
+            rowsContainer.querySelectorAll("[data-remove-row]").forEach((btn) => {
+                btn.addEventListener("click", (e) => {
+                    e.target.closest(".guest-row").remove();
+                    reindexRows();
+                });
+            });
+
+            document.querySelector(".attendance-form").addEventListener("submit", (event) => {
+                const removedPeople = document.querySelectorAll('input[name$="-DELETE"]:checked').length;
+                if (removedPeople && !confirm(
+                    `${removedPeople === 1 ? "Eine mitgebrachte Person wird" : removedPeople + " mitgebrachte Personen werden"} beim Speichern entfernt. Fortfahren?`
+                )) {
+                    event.preventDefault();
+                }
+            });
+
+            const cancelForm = document.querySelector(".attendance-cancel-form");
+            if (cancelForm) {
+                cancelForm.addEventListener("submit", (event) => {
+                    const warning = {% if editing_other %}
+                        "Achtung: Diese Anmeldung und alle dazu eingetragenen Personen werden entfernt. Fortfahren?";
+                    {% else %}
+                        "Achtung: Deine Anmeldung, deine mitgebrachten Personen und deine Zusagen für Mitbringliste, Spiele, Dienste oder Workshops werden entfernt. Fortfahren?";
+                    {% endif %}
+                    if (!confirm(warning)) {
+                        event.preventDefault();
+                    }
+                });
+            }
+        })();
+    </script>
+{% endblock %}

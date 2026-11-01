@@ -1,0 +1,19 @@
+{% if list.description or list.attachments %}
+<aside class="list-description" aria-label="Informationen zu {{ list.label }}">
+    {% if list.description %}<div class="list-description-text">{{ list.description|linebreaksbr }}</div>{% endif %}
+    {% if list.attachments %}<div class="list-attachments">
+        {% for attachment in list.attachments %}
+        <div class="list-attachment">
+            {% if attachment.is_image %}
+            <a class="list-attachment-preview" href="{% url 'events:list_attachment_file' event.pk attachment.pk %}" target="_blank" rel="noopener">
+                <img src="{% url 'events:list_attachment_file' event.pk attachment.pk %}" alt="{{ attachment.original_name }}" loading="lazy">
+            </a>
+            {% else %}
+            <span class="list-attachment-icon" aria-hidden="true"><i class="fa-solid fa-file-pdf"></i></span>
+            {% endif %}
+            <a class="list-attachment-download" href="{% url 'events:list_attachment_file' event.pk attachment.pk %}?download=1"><span>{{ attachment.original_name }}</span><span class="list-attachment-action">Herunterladen</span></a>
+        </div>
+        {% endfor %}
+    </div>{% endif %}
+</aside>
+{% endif %}

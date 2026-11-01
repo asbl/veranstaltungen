@@ -1,0 +1,26 @@
+{% load events_extras %}
+{% if game.min_players or game.max_players or game.bgg_rating or game.complexity or game.bgg_categories or game.bgg_mechanics or game.bgg_year or game.min_age or game.playtime_minutes or game.bgg_description or game.bgg_translation.text_de %}
+  {% if game.thumbnail_url %}<img class="game-bgg-popup-thumb" src="{{ game.thumbnail_url }}" alt="Vorschaubild von {{ game.name }}" loading="lazy">{% endif %}
+  <dl class="game-bgg-details">
+    {% if game.players_label %}<div><dt>Spielerzahl</dt><dd>{{ game.players_label }}</dd></div>{% endif %}
+    {% if game.bgg_year %}<div><dt>Erschienen</dt><dd>{{ game.bgg_year }}</dd></div>{% endif %}
+    {% if game.playtime_minutes %}<div><dt>Spieldauer</dt><dd>{{ game.playtime_minutes }} Min.</dd></div>{% endif %}
+    {% if game.min_age %}<div><dt>Mindestalter</dt><dd>ab {{ game.min_age }} Jahren</dd></div>{% endif %}
+    {% if game.bgg_categories %}<div><dt>Kategorien</dt><dd>{{ game.bgg_categories|bgg_german_labels|join:", " }}</dd></div>{% endif %}
+    {% if game.bgg_mechanics %}<div><dt>Mechanismen</dt><dd>{{ game.bgg_mechanics|bgg_german_labels|join:", " }}</dd></div>{% endif %}
+    {% if game.complexity %}<div><dt>Komplexität</dt><dd>{{ game.complexity_label }} (Gewicht {{ game.complexity }} / 5)</dd></div>{% endif %}
+    {% if game.bgg_rating %}<div><dt>BGG-Wertung</dt><dd>{{ game.bgg_rating }} / 10</dd></div>{% endif %}
+  </dl>
+  {% if game.bgg_translation.text_de %}
+    <div class="game-bgg-description"><strong>Beschreibung (Deutsch)</strong><p>{% if expanded %}{{ game.bgg_translation.text_de|linebreaksbr }}{% else %}{{ game.bgg_translation.text_de|truncatechars:320|linebreaksbr }}{% endif %}</p><small class="muted">{{ game.bgg_translation.attribution }}</small></div>
+    {% if expanded %}<details class="game-bgg-original"><summary>BGG-Original anzeigen</summary><p>{{ game.bgg_translation.source_text|default:game.bgg_description|bgg_description_text|linebreaksbr }}</p></details>{% endif %}
+  {% elif game.bgg_description %}<div class="game-bgg-description"><strong>Kurzbeschreibung (BGG-Original)</strong><p>{{ game.bgg_description|bgg_description_text|truncatechars:320|linebreaksbr }}</p></div>{% endif %}
+{% else %}
+  <p class="muted small">BGG-Daten werden im Hintergrund geladen.</p>
+{% endif %}
+<a class="game-bgg-popup-link" href="https://boardgamegeek.com/boardgame/{{ game.bgg_id }}" target="_blank" rel="noopener noreferrer">Auf BoardGameGeek ansehen</a>
+<div class="muted small">Powered by BoardGameGeek</div>
+
+{% if game.created_by == user and may_write or can_manage %}
+<a class="game-bgg-popup-link" href="{% url 'events:game_translation' game.pk %}">{% if game.bgg_translation.text_de %}Deutsche Beschreibung bearbeiten{% else %}Deutsche Beschreibung übersetzen / bearbeiten{% endif %}</a>
+{% endif %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{% if claim %}Anzahl ändern{% elif for_other %}{{ item.title }} für jemand anderen eintragen{% else %}{{ item.title }} übernehmen{% endif %}{% endblock %}
+{% block content %}
+    <h1>{% if claim %}Menge für „{{ item.title }}“ ändern{% elif for_other %}(Orga:) „{{ item.title }}“ für jemand anderen eintragen{% else %}„{{ item.title }}“ übernehmen{% endif %}</h1>
+    {% if for_other %}<p class="muted">Trage hier ein, wenn jemand anderes etwas mitbringt – z. B. nach einer Absprache per Telefon. Die Zusage erscheint mit dem Hinweis, dass du sie eingetragen hast.</p>{% endif %}
+    {% if item.target_quantity %}<p class="muted">Noch offen: {{ item.remaining }}{% if item.unit %} {{ item.unit }}{% endif %} von {{ item.target_quantity }}{% if item.unit %} {{ item.unit }}{% endif %}{% if item.is_variable %} ({{ item.variable_quantity }}{% if item.unit %} {{ item.unit }}{% endif %} pro {{ item.variable_per_persons }} Anmeldungen){% endif %}</p>{% endif %}
+    <form method="post" class="card">
+        {% csrf_token %}
+        {% include "events/_form_error_summary.html" %}
+        {% for field in form %}
+            <p class="form-row">
+                {{ field.errors }}
+                <label for="{{ field.id_for_label }}">{{ field.label }} {% include "events/_required_badge.html" with field=field %}</label>
+                {{ field }}
+                {% if field.help_text %}<span class="muted small">{{ field.help_text }}</span>{% endif %}
+            </p>
+        {% endfor %}
+        {% if guest_names %}<datalist id="potluck-person-names">{% for name in guest_names %}<option value="{{ name }}">{% endfor %}</datalist>{% endif %}
+        <button type="submit" class="btn"><i class="fa-solid fa-check"></i>{% if claim %}Speichern{% elif for_other %}Eintragen{% else %}Übernehmen{% endif %}</button>
+        <a class="btn secondary" href="{% url 'events:event_detail' item.event_id %}#potluck-{{ item.pk }}">Abbrechen</a>
+    </form>
+{% endblock %}

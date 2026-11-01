@@ -1,0 +1,8 @@
+{% if form.errors or formset.errors or formset.non_form_errors %}
+    <div class="form-error-summary" role="alert" tabindex="-1">
+        <strong>Speichern nicht möglich</strong>
+        <p>Bitte korrigiere die unten mit einer Fehlermeldung markierten Angaben. Deine Eingaben sind weiterhin im Formular enthalten.</p>
+        {{ form.non_field_errors }}
+        {% if formset %}{{ formset.non_form_errors }}{% endif %}
+    </div>
+{% endif %}

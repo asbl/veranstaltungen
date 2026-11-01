@@ -1,0 +1,3 @@
+{% load events_extras %}<strong>Erklärbären</strong>
+{% for claim in game.active_explain_claims %}<span class="game-explain-person">{% user_link claim.user event %}</span>{% empty %}<span class="game-explain-person">Noch keine Erklärbären angemeldet.</span>{% endfor %}
+{% if game.explained_by_me and may_write %}<span class="game-explain-note">{% if game.my_explain_claim_active %}Du bist als Erklärbär eingetragen.{% else %}Du bist eingetragen, zählst aber erst mit, wenn du zur Veranstaltung angemeldet bist.{% endif %} Erneut auf 🐻 klicken trägt dich wieder aus.</span>{% elif may_write and user.is_authenticated %}<span class="game-explain-note">Klick auf 🐻 trägt dich als Erklärbär ein.</span>{% endif %}

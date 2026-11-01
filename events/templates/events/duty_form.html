@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{% if duty %}Dienst bearbeiten{% else %}Dienst anlegen{% endif %}{% endblock %}
+{% block content %}
+    <h1>{% if duty %}Dienst von „{{ event.title }}“ bearbeiten{% else %}Dienst für „{{ event.title }}“ anlegen{% endif %}</h1>
+    <form method="post" class="card">
+        {% csrf_token %}
+        {% include "events/_form_error_summary.html" %}
+        {% for field in form %}
+            {% if field.name == "description" %}
+                {{ field.errors }}
+                <label for="{{ field.id_for_label }}">{{ field.label }} {% include "events/_required_badge.html" with field=field %}</label>
+                {% include "events/_simple_editor_field.html" with field=field %}
+            {% else %}
+                <p class="form-row">
+                    {{ field.errors }}
+                    <label for="{{ field.id_for_label }}">{{ field.label }} {% include "events/_required_badge.html" with field=field %}</label>
+                    {{ field }}
+                    {% if field.help_text %}<span class="muted small">{{ field.help_text }}</span>{% endif %}
+                </p>
+            {% endif %}
+        {% endfor %}
+        <button type="submit" class="btn">{% if duty %}<i class="fa-solid fa-floppy-disk"></i>Speichern{% else %}<i class="fa-solid fa-plus"></i>Anlegen{% endif %}</button>
+        <a class="btn secondary" href="{% url 'events:event_detail' event.pk %}#duties-section">Abbrechen</a>
+    </form>
+{% endblock %}
+{% block extra_js %}
+    <script src="{% static 'events/js/simple-editor.js' %}"></script>
+{% endblock %}

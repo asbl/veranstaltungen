@@ -1,0 +1,24 @@
+{% load events_extras %}<strong>Erklärbären</strong>
+                                    {% if game.explain_claims.all %}
+                                        <div class="claims-line game-bring-claims muted">
+                                            {% for claim in game.explain_claims.all %}
+                                                <div class="claim-entry game-bring-claim">
+                                                    <div>{% user_link claim.user event %}{% if not claim.user_is_attending %} <span class="pill warn" title="Diese Person ist nicht (mehr) für die Veranstaltung angemeldet">⚠️ nicht angemeldet</span>{% endif %}</div>
+                                                    {% if claim.user == user and may_write or user.is_superuser %}
+                                                        <form class="game-bring-claim-action" method="post" action="{% url 'events:game_explain_claim_cancel' claim.pk %}">
+                                                            {% csrf_token %}
+                                                            <button type="submit" class="btn link"><i class="fa-solid fa-rotate-left"></i>{% if claim.user == user %}zurückziehen{% else %}(Orga:) Löschen{% endif %}</button>
+                                                        </form>
+                                                    {% endif %}
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <p class="muted">Noch keine Erklärbären eingetragen.</p>
+                                    {% endif %}
+                                    {% if not game.explained_by_me and may_write %}
+                                        <form class="game-bring-add" method="post" action="{% action_url 'events:game_explain_claim_create' game.pk %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn link"><i class="fa-solid fa-hand-holding-heart"></i>Ich kann das Spiel erklären</button>
+                                        </form>
+                                    {% endif %}

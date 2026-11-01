@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{% if game %}Spiel bearbeiten{% else %}Spiel hinzufügen{% endif %}{% endblock %}
+{% block content %}
+    <h1>{% if game %}Spiel von „{{ event.title }}“ bearbeiten{% else %}Spiel für „{{ event.title }}“ hinzufügen{% endif %}</h1>
+    <form method="post" class="card" data-bgg-search-url="{% url 'events:game_bgg_search' %}" data-bgg-lookup-url="{% url 'events:game_bgg_lookup' %}">
+        {% csrf_token %}
+        {% include "events/_form_error_summary.html" %}
+        {% for field in form %}
+            {% if field.name == "description" %}
+                {{ field.errors }}
+                <label for="{{ field.id_for_label }}">{{ field.label }} {% include "events/_required_badge.html" with field=field %}</label>
+                {% include "events/_simple_editor_field.html" with field=field %}
+            {% elif field.name == "can_explain" %}
+                <div class="form-row">
+                    {{ field.errors }}
+                    <label class="game-explain-check">{{ field }} <span><span aria-hidden="true">🐻</span> {{ field.label }}</span></label>
+                </div>
+            {% elif field.name == "bgg_id" or field.name == "min_players" or field.name == "max_players" or field.name == "bgg_rating" or field.name == "complexity" or field.name == "bgg_categories_text" %}
+                {# Diese Felder werden weiter unten unter „Weitere Optionen“ gerendert. #}
+            {% else %}
+                <div class="form-row">
+                    {{ field.errors }}
+                    <label for="{{ field.id_for_label }}">{{ field.label }} {% include "events/_required_badge.html" with field=field %}</label>
+                    {% if field.name == "name" %}<div class="bgg-suggestion-wrap">{{ field }}<div class="bgg-suggestions" id="bgg-suggestions" hidden></div><span class="bgg-lookup-status" id="bgg-lookup-status" role="status"></span></div>{% else %}{{ field }}{% endif %}
+                    {% if field.help_text %}<span class="muted small">{{ field.help_text }}</span>{% endif %}
+                </div>
+            {% endif %}
+        {% endfor %}
+        <details class="form-more-options"{% if form.bgg_id.value or form.bgg_rating.value or form.complexity.value or form.min_players.value or form.bgg_categories_text.value or form.bgg_id.errors or form.min_players.errors or form.max_players.errors or form.bgg_rating.errors or form.complexity.errors or form.bgg_categories_text.errors %} open{% endif %}>
+            <summary>Weitere Optionen: BGG-Details</summary>
+            <div class="bgg-id-field-wrap">
+                {{ form.bgg_id.errors }}
+                <label for="{{ form.bgg_id.id_for_label }}">{{ form.bgg_id.label }} {% include "events/_required_badge.html" with field=form.bgg_id %}</label>
+                {{ form.bgg_id }}
+                {% if form.bgg_id.help_text %}<span class="muted small">{{ form.bgg_id.help_text }}</span>{% endif %}
+            </div>
+            <div class="bgg-fields-grid">
+                <p class="form-row">
+                    {{ form.min_players.errors }}
+                    <label for="{{ form.min_players.id_for_label }}">{{ form.min_players.label }} {% include "events/_required_badge.html" with field=form.min_players %}</label>
+                    {{ form.min_players }}
+                </p>
+                <p class="form-row">
+                    {{ form.max_players.errors }}
+                    <label for="{{ form.max_players.id_for_label }}">{{ form.max_players.label }} {% include "events/_required_badge.html" with field=form.max_players %}</label>
+                    {{ form.max_players }}
+                </p>
+                <p class="form-row">
+                    {{ form.bgg_rating.errors }}
+                    <label for="{{ form.bgg_rating.id_for_label }}">{{ form.bgg_rating.label }} {% include "events/_required_badge.html" with field=form.bgg_rating %}</label>
+                    {{ form.bgg_rating }}
+                </p>
+                <p class="form-row">
+                    {{ form.complexity.errors }}
+                    <label for="{{ form.complexity.id_for_label }}">{{ form.complexity.label }} {% include "events/_required_badge.html" with field=form.complexity %}</label>
+                    {{ form.complexity }}
+                </p>
+            </div>
+            <p class="form-row">
+                {{ form.bgg_categories_text.errors }}
+                <label for="{{ form.bgg_categories_text.id_for_label }}">{{ form.bgg_categories_text.label }} {% include "events/_required_badge.html" with field=form.bgg_categories_text %}</label>
+                {{ form.bgg_categories_text }}
+                {% if form.bgg_categories_text.help_text %}<span class="muted small">{{ form.bgg_categories_text.help_text }}</span>{% endif %}
+            </p>
+        </details>
+        <button type="submit" class="btn">{% if game %}<i class="fa-solid fa-floppy-disk"></i>Speichern{% else %}<i class="fa-solid fa-plus"></i>Hinzufügen{% endif %}</button>
+        <a class="btn secondary" href="{% url 'events:event_detail' event.pk %}#games-section">Abbrechen</a>
+    </form>
+    {% if game.bgg_id %}<p><a href="{% url 'events:game_translation' game.pk %}">Deutsche BGG-Beschreibung übersetzen / bearbeiten</a></p>{% endif %}
+{% endblock %}
+{% block extra_js %}
+    <script src="{% static 'events/js/simple-editor.js' %}"></script>
+    <script src="{% static 'events/js/bgg-form.js' %}"></script>
+{% endblock %}

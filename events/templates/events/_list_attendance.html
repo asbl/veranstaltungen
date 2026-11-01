@@ -1,0 +1,128 @@
+{% load events_extras %}
+    <section class="feature" id="attendance-section">
+        <h2>Anwesenheitsliste ({{ event.attendee_count }} Personen) {% include "events/_list_settings_link.html" %}</h2>
+        {% include "events/_list_description.html" %}
+        {% if may_write %}
+        <a class="btn" href="{% url 'events:attendance_rsvp' event.pk %}">
+            {% if my_attendance %}<i class="fa-solid fa-pen"></i>Meine Anmeldung bearbeiten{% else %}<i class="fa-solid fa-check"></i>Anmelden{% endif %}
+        </a>
+        <a class="btn secondary" href="{% url 'events:decline_create' event.pk %}"><i class="fa-solid fa-user-xmark"></i>Ich komme leider nicht</a>
+        {% endif %}
+
+        <ul class="item-list">
+            {% for day in event.days.all %}
+                <li>
+                    <strong>{{ day.display_label }}</strong>
+                    {% if day.start_time or day.end_time %}
+                        <span class="muted">{{ day.start_time|default:"" }}{% if day.end_time %}–{{ day.end_time }}{% endif %} Uhr</span>
+                    {% endif %}
+                    <details class="day-attendee-details">
+                        <summary>
+                            <span class="pill">👥 {{ day.total_count }} gesamt · {{ day.member_count }} Mitglieder · {{ day.guest_count }} Nichtmitglieder</span>
+                        </summary>
+                        <ul class="sublist">
+                            {% for entry in day.member_entries %}
+                                <li>{% if entry.user %}{% user_link entry.user event entry.name %}{% else %}{{ entry.name }}{% endif %} <span class="muted">(Mitglied)</span>{% if entry.comment %}<span class="muted"> – {{ entry.comment }}</span>{% endif %}</li>
+                            {% endfor %}
+                            {% for entry in day.guest_entries %}
+                                <li>
+                                    {% if entry.user %}{% user_link entry.user event entry.name %}{% else %}{{ entry.name }}{% endif %}
+                                    <span class="muted small">(Nichtmitglied{% if entry.via %}, über {{ entry.via }}{% endif %})</span>
+                                    {% if entry.comment %}<span class="muted"> – {{ entry.comment }}</span>{% endif %}
+                                </li>
+                            {% empty %}
+                                {% if not day.member_entries %}<li class="muted">Noch niemand anwesend.</li>{% endif %}
+                            {% endfor %}
+                        </ul>
+                        {% if can_manage %}
+                            <a class="btn link" href="{% url 'events:day_attendance_export' day.pk %}"><i class="fa-solid fa-file-excel"></i>(Orga:) Als Excel exportieren</a>
+                        {% endif %}
+                    </details>
+                </li>
+            {% endfor %}
+        </ul>
+
+        {% if event.declines.count %}
+            <details class="day-attendee-details">
+                <summary>
+                    <span class="pill">🚫 {{ event.declines.count }} {% if event.declines.count == 1 %}Absage{% else %}Absagen{% endif %}</span>
+                </summary>
+                <ul class="sublist">
+                    {% for decline in event.declines.all %}
+                        <li>
+                            {% user_link decline.user event %}
+                            {% if decline.comment %}<span class="muted"> – Grund: {{ decline.comment }}</span>{% endif %}
+                            {% if decline.user == user and may_write or can_manage %}
+                                <form class="inline" method="post" action="{% url 'events:decline_cancel' decline.pk %}"
+                                      onsubmit="return confirm({% if decline.user == user %}'Achtung: Deine Absage wird zurückgezogen. Fortfahren?'{% else %}'Achtung: Die Absage wird gelöscht. Fortfahren?'{% endif %});">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn link"><i class="fa-solid fa-rotate-left"></i>{% if decline.user == user %}zurückziehen{% else %}(Orga:) Löschen{% endif %}</button>
+                                </form>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </details>
+        {% endif %}
+
+        {% if can_manage %}
+            <button type="button" class="btn link comment-toggle" data-target="attendance-edit-panel">
+                <i class="fa-solid fa-users-gear"></i>(Orga:) Anmeldungen bearbeiten
+            </button>
+
+            <div id="attendance-edit-panel" hidden>
+                {% if event.attendances.all %}
+                    <div class="list-controls">
+                        <select id="attendance-day-filter">
+                            <option value="">Alle Tage</option>
+                            {% for day in event.days.all %}
+                                <option value="{{ day.pk }}">{{ day.display_label }}</option>
+                            {% endfor %}
+                        </select>
+                        <select id="attendance-role-filter">
+                            <option value="">Mitglieder &amp; Nichtmitglieder</option>
+                            <option value="member">Nur Mitglieder</option>
+                            <option value="guest">Nur Nichtmitglieder</option>
+                        </select>
+                        <select id="attendance-sort">
+                            <option value="name">Sortieren: Name</option>
+                            <option value="role">Sortieren: Status</option>
+                        </select>
+                    </div>
+                {% endif %}
+                <ul class="item-list" id="attendance-list">
+                    {% for a in event.attendances.all %}
+                        <li id="attendance-{{ a.pk }}" data-name="{{ a.display_name|lower }}" data-role="{{ a.role }}"
+                            data-days="{% for d in a.days.all %}{{ d.pk }} {% endfor %}">
+                            {% user_link a.user event a.display_name %} — {{ a.get_role_display }}
+                            <span class="muted">({% for d in a.days.all %}{{ d.display_label }}{% if not forloop.last %}, {% endif %}{% endfor %})</span>
+                            {% if a.role == "guest" and a.invited_by %}
+                                <span class="muted">eingeladen durch {{ a.invited_by }}</span>
+                            {% endif %}
+                            <a class="btn link" href="{% url 'events:attendance_edit' a.pk %}"><i class="fa-solid fa-pen"></i>(Orga:) Bearbeiten</a>
+                            <form class="inline" method="post" action="{% url 'events:attendance_cancel' a.pk %}" onsubmit="return confirm('Achtung: Diese Anmeldung, alle dazu eingetragenen Personen und zugehörige Zusagen werden entfernt. Fortfahren?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn link"><i class="fa-solid fa-rotate-left"></i>{% if a.user == user %}zurückziehen{% else %}(Orga:) Löschen{% endif %}</button>
+                            </form>
+                            {% if a.comment %}<p class="muted">{{ a.comment }}</p>{% endif %}
+                            {% if a.brought_people.count %}
+                                <ul class="sublist">
+                                    {% for p in a.brought_people.all %}
+                                        <li>
+                                            {{ p.name }} ({{ p.get_role_display }}) — {% for d in p.days.all %}{{ d.display_label }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                                            <form class="inline" method="post" action="{% url 'events:brought_person_cancel' p.pk %}" onsubmit="return confirm('Mitgebrachte Person „{{ p.name|escapejs }}“ wirklich entfernen?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn link"><i class="fa-solid fa-rotate-left"></i>{% if a.user == user %}entfernen{% else %}(Orga:) Löschen{% endif %}</button>
+                                            </form>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </li>
+                    {% empty %}
+                        <li class="muted">Noch niemand angemeldet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    </section>

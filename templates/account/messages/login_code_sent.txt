@@ -1,0 +1,1 @@
+{% load i18n %}Ein Anmeldecode wurde an {{ recipient }} verschickt (bitte auch den Spam-Ordner prüfen). Falls dafür noch kein Konto bestand, wurde es soeben mit angelegt – der Code bestätigt die Adresse und meldet dich in einem Schritt an.

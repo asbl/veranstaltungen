@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Werbung: Aliase{% endblock %}
+{% block content %}
+<h1>Namen derselben Person zusammenführen</h1>
+<p>{{ event.title }} · Die Originaleinträge bleiben erhalten. Im Highscore werden die Namen gemeinsam gezählt.</p>
+<form method="post" class="card">{% csrf_token %}{% include "events/_form_error_summary.html" %}
+{{ form.as_p }}
+<button class="btn" type="submit">Speichern</button>
+{% if identity.pk %}<button class="btn secondary" type="submit" name="delete" value="1">Zuordnung aufheben</button>{% endif %}
+<a class="btn secondary" href="{% url 'events:event_detail' event.pk %}#advert-section">Zurück</a>
+</form>
+{% endblock %}

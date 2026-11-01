@@ -1,0 +1,9 @@
+{% extends "account/email/base_message.txt" %}
+{% load account %}
+{% load i18n %}
+
+{% block content %}{% autoescape off %}Dein Anmeldecode steht unten. Bitte gib ihn in deinem geöffneten Browserfenster ein.{% endautoescape %}
+
+{{ code }}
+
+Diese E-Mail kann ignoriert werden, wenn du diese Aktion nicht ausgelöst hast.{% endblock content %}

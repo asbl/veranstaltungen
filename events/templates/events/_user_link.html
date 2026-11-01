@@ -1,0 +1,7 @@
+{% if user %}
+    <a class="user-link" href="#user-profile-dialog"
+       data-user-profile-id="{{ user.pk }}" data-user-profile-name="{{ label }}"
+       aria-haspopup="dialog"><i class="fa-solid fa-user" aria-hidden="true"></i>{{ label }}</a>
+{% else %}
+    <span class="user-label"><i class="fa-solid fa-user" aria-hidden="true"></i>{{ label }}</span>
+{% endif %}

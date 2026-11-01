@@ -1,0 +1,21 @@
+# Gemeinsame deutsche Spielbeschreibungen
+
+`DEEPL` (alternativ `DEEPL_API_KEY`) in der Projekt-`.env` enthält den geheimen API-Schlüssel. Nach einer Änderung muss der Webcontainer mit `docker compose up -d --no-deps --force-recreate web` neu erstellt werden; ein Neustart übernimmt keine geänderten Umgebungsvariablen. Free-Schlüssel (`:fx`) verwenden `api-free.deepl.com`, andere Schlüssel die Pro-API. Der Schlüssel bleibt ausschließlich auf dem Server.
+
+Am gespeicherten Spiel führt **Deutsche Beschreibung übersetzen / bearbeiten** zur gemeinsamen Beschreibung. Nur der Ersteller des Spieleintrags und die Veranstaltungsorga dürfen diese bearbeiten oder übersetzen. Veranstaltungszugang, Schreibschutz und CSRF-Prüfung gelten auch hier.
+
+Zwei Wege lösen eine Übersetzung aus: der POST über den Übersetzen-Button und der periodische Cron-Lauf (Management-Command `auto_translate_games`, alle 5 Minuten mit kleinem Batch). Er übersetzt automatisch jede BGG-ID, für die noch kein Übersetzungsdatensatz existiert, und übersetzt automatisch übersetzte Beschreibungen neu, sobald sich die frischeste lokal gespeicherte BGG-Originalbeschreibung geändert hat. Weder das Anlegen eines Spiels noch Seitenaufrufe oder Druck lösen Übersetzungen aus; der BGG-Hintergrundabgleich (`sync_bgg_games`) holt nur die Originalbeschreibungen, die der Übersetzungs-Lauf dann verwendet.
+
+Manuell bearbeitete Datensätze (edited_at gesetzt) werden vom automatischen Lauf nie wieder angefasst - die Korrektur bleibt dauerhaft erhalten. Für alle anderen gilt die Einmal-Garantie je Quellfassung: Dieselbe Originalbeschreibung wird höchstens einmal an DeepL gesendet, egal ob nach gleichzeitigen Klicks, Worker-Abstürzen oder weiteren BGG-Abgleichen. Spiele ohne verwendbare Originalbeschreibung und zu lange Beschreibungen verbrauchen keinen Versuch und werden beim nächsten Lauf erneut geprüft. Eine fehlgeschlagene Anfrage wird erst wiederholt, wenn sich das BGG-Original erneut ändert; bis dahin bleibt die vorherige deutsche Fassung angezeigt, und der Datensatz kann manuell repariert werden.
+
+`BggTranslation.bgg_id` ist der Primärschlüssel. Die Beschreibung wird über diese ID in allen Veranstaltungen angezeigt, auch wenn ein neu angelegter Eintrag einen anderen Namen hat. Korrekturen sind ebenfalls global. Der Datensatz bleibt erhalten, wenn Spiele oder Veranstaltungen gelöscht werden. Die Originalbeschreibung wird beim Übersetzen mitgespeichert. Die deutsche Fassung erscheint im Popup, vollständig im ausgeklappten Eintrag und vollständig in der Druckansicht. Ohne Übersetzung bleibt die bisherige Beschreibung sichtbar.
+
+Vor jedem DeepL-Aufruf wird eine eindeutige Reservierung in einer eigenen dauerhaften Transaktion gespeichert. Damit erzeugen gleichzeitige Klicks, weitere Veranstaltungen und spätere BGG-Abgleiche keine weiteren DeepL-Aufrufe für dieselbe Quellfassung. Es gibt bewusst keine HTTP-Wiederholungen: Auch nach einer unklaren Antwort, Zeitüberschreitung oder einem Worker-Abbruch wird dieselbe Quellfassung nicht noch einmal an DeepL gesendet. Fehlgeschlagene Anfragen können durch manuelles Eintragen einer Beschreibung behoben werden; eine liegengebliebene Reservierung lässt dies nach 90 Sekunden zu. Eine verspätete Antwort überschreibt keine manuelle Korrektur. Eine fehlende Konfiguration oder fehlende bzw. zu lange Originalbeschreibung verbraucht keinen Versuch.
+
+Versionsnummern schützen Korrekturen vor dem Überschreiben durch veraltete Formulare. Bei einem Konflikt bleibt die Eingabe sichtbar und muss mit der aktuellen Fassung abgeglichen werden. Eine manuell gespeicherte Beschreibung benötigt ebenfalls keinen automatischen Übersetzungsaufruf.
+
+Für die Einmal-Garantie dürfen gemeinsame Übersetzungsdatensätze nicht gelöscht oder ihre Zustände auf einen vorherigen Stand zurückgesetzt werden. Wie bei anderen persistenten Daten kann eine Wiederherstellung eines alten Datenbank-Backups jüngere Reservierungen verlieren.
+
+Prüfen: `docker compose exec -T web python manage.py test events.test_translations events.tests.GamePrintDescriptionTests events.tests.GameBggAndExplainerDisplayTests events.tests.GameEntrySummaryInfoTests --noinput`
+
+DeepL-Dokumentation: https://developers.deepl.com/api-reference/translate/request-translation und https://developers.deepl.com/docs/getting-started/auth

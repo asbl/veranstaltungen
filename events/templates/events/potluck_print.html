@@ -1,0 +1,46 @@
+{% extends "events/_print_base.html" %}
+{% load events_extras %}
+{% block title %}Mitbringliste{% endblock %}
+{% block kicker %}Mitbringliste – wer bringt was?{% endblock %}
+{% block back_anchor %}potluck-section{% endblock %}
+{% block back_label %}Zur Mitbringliste{% endblock %}
+{% block style %}
+        .print-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+        .print-table th { text-align: left; color: var(--green); font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-bottom: 2px solid var(--green); padding: .2rem .4rem; }
+        .print-table td { vertical-align: top; border-bottom: 1px solid var(--line); padding: .3rem .4rem; }
+        .print-table tr { break-inside: avoid; }
+        .col-amount { width: 7.5rem; white-space: nowrap; }
+        .item-title { font-weight: 600; }
+        .is-open .col-amount { color: var(--accent); font-weight: 600; }
+        .write-in { display: inline-block; height: 1.2rem; min-width: 9rem; vertical-align: bottom; }
+        @media print { .print-table { font-size: 9.5pt; } }
+{% endblock %}
+{% block content %}
+    {% if items %}
+        <table class="print-table">
+            <thead><tr><th>Eintrag</th><th class="col-amount">Menge</th><th>Wer bringt was</th></tr></thead>
+            <tbody>
+            {% for item in items %}
+                <tr class="{% if item.is_missing %}is-open{% endif %}">
+                    <td><span class="item-title">{{ item.title }}</span></td>
+                    <td class="col-amount">
+                        {% if item.target_quantity != None %}
+                            {% if item.remaining > 0 %}{{ item.remaining }} von {{ item.target_quantity }}{% if item.unit %} {{ item.unit }}{% endif %} offen{% else %}{{ item.target_quantity }}{% if item.unit %} {{ item.unit }}{% endif %} ✓{% endif %}
+                        {% else %}–{% endif %}
+                    </td>
+                    <td>
+                        <ul class="badges">
+                            {% for claim in item.claims.all %}
+                                <li class="badge badge-person"><b>{{ claim.person_label }}</b> {{ claim.quantity }}{% if item.unit %} {{ item.unit }}{% else %}×{% endif %}{% if not claim.user_is_attending %} <span class="note">(nicht angemeldet)</span>{% endif %}</li>
+                            {% endfor %}
+                            {% if item.is_missing %}<li><span class="write-in" aria-hidden="true"></span></li>{% endif %}
+                        </ul>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="note">Noch keine Einträge in der Mitbringliste.</p>
+    {% endif %}
+{% endblock %}

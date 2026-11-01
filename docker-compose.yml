@@ -1,0 +1,78 @@
+services:
+  db:
+    image: "postgres@sha256:a902560563d3a5661228585f53474c5065e7f273b21ffd77e555a8b5682c5690"
+    # Host-spezifisches Runtime (z. B. gVisor-kompatibel). Auf anderen Hosts
+    # einfach auskommentieren: runtime: "php-security-compat"
+    container_name: veranstaltungen_db
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-veranstaltungen}
+      POSTGRES_USER: ${POSTGRES_USER:-veranstaltungen}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-veranstaltungen}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  web:
+    build: .
+    image: "local/container-security:pip-2feee6fd72b69cde78df"
+    # Host-spezifisches Runtime (z. B. gVisor-kompatibel). Auf anderen Hosts
+    # einfach auskommentieren: runtime: "php-security-compat"
+    container_name: veranstaltungen_web
+    restart: unless-stopped
+    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 60"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+    depends_on:
+      - db
+    networks:
+      - default
+      - veranstaltungen_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=veranstaltungen_proxy"
+      - "traefik.http.routers.veranstaltungen.rule=Host(`${SITE_DOMAIN:-localhost}`)"
+      - "traefik.http.routers.veranstaltungen.entrypoints=websecure"
+      - "traefik.http.routers.veranstaltungen.tls.certresolver=alpnresolver"
+      - "traefik.http.services.veranstaltungen.loadbalancer.server.port=8000"
+
+  cron:
+    image: "local/container-security:pip-2feee6fd72b69cde78df"
+    # Host-spezifisches Runtime (z. B. gVisor-kompatibel). Auf anderen Hosts
+    # einfach auskommentieren: runtime: "php-security-compat"
+    container_name: veranstaltungen_cron
+    restart: unless-stopped
+    # Kein separater Task-Queue-Unterbau (Celery/Redis) im Einsatz - für die
+    # gesammelten Ideen-Kommentar-Mails und die automatische Übersetzung
+    # fehlender Spielbeschreibungen reicht ein simpler Poll-Loop, der die
+    # Management-Commands alle 5 Minuten aufruft (auto_translate_games mit
+    # kleinem Batch, damit der Kontingent-Verbrauch verteilt wird). Nutzt
+    # bewusst dasselbe, von "web" gebaute Image (kein eigenes "build:"), damit
+    # nicht zweimal gebaut werden muss - "web" muss also vor "cron" gebaut
+    # worden sein.
+    command: sh -c "while true; do python manage.py sync_bgg_games; python manage.py send_idea_comment_notifications; python manage.py prune_unconfirmed_accounts; python manage.py auto_translate_games; python manage.py send_error_report; sleep 300; done"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+    depends_on:
+      - db
+      - web
+
+volumes:
+  db_data:
+
+networks:
+  # Eigenes Übergabenetz zwischen Traefik und dieser Anwendung. Dadurch hängt
+  # der Web-Container nicht im gemeinsamen Netz aller veröffentlichten Dienste.
+  veranstaltungen_proxy:
+    external: true

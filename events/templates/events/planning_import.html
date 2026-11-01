@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Aufgaben übernehmen – {{ event.title }}{% endblock %}
+{% block content %}
+<h1>Aufgaben nach „{{ event.title }}“ übernehmen</h1>
+<p>Übernommen werden Orga-Aufgaben, Werbung und TODOs aus einer Veranstaltung, die du verwaltest. Bereits übernommene Aufgaben und gleichnamige Aufgaben derselben Liste werden übersprungen.</p>
+<form method="get" class="card"><label for="source-event">Vorlage aus Veranstaltung</label><select id="source-event" name="source" required><option value="">Bitte auswählen</option>{% for candidate in sources %}<option value="{{ candidate.pk }}"{% if source.pk == candidate.pk %} selected{% endif %}>{{ candidate.title }}</option>{% endfor %}</select><button class="btn" type="submit">Vorschau anzeigen</button></form>
+{% if source %}
+<h2>{{ items|length }} Aufgaben aus „{{ source.title }}“</h2>
+<ul>{% for item in items %}<li>{{ item.get_category_display }}: {{ item.title }} · {{ item.get_status_display }}{% if item.people %} · {{ item.people }}{% endif %}</li>{% empty %}<li>Keine Aufgaben vorhanden.</li>{% endfor %}</ul>
+{% if items %}<form method="post" class="card">
+{% csrf_token %}<input type="hidden" name="source" value="{{ source.pk }}">
+<p><label><input type="checkbox" name="reset_status" checked> Alle übernommenen Aufgaben wieder auf „Offen“ setzen</label></p>
+<p><label><input type="checkbox" name="reset_people" checked> Zuständigkeiten für die neue Veranstaltung leeren</label></p>
+<p>Bisherige Verantwortliche bleiben als „zuletzt gemacht von“ erhalten. Veröffentlichungsdatum und Veröffentlichungslink werden geleert. Fälligkeiten werden um den Abstand zwischen den ersten Veranstaltungstagen verschoben; fehlt ein Termin, bleiben sie offen.</p>
+<button type="submit" class="btn">Aufgaben übernehmen</button>
+</form>{% endif %}
+{% endif %}
+<a class="btn secondary" href="{% url 'events:event_detail' event.pk %}">Zur Veranstaltung</a>
+{% endblock %}

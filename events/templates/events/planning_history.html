@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load events_extras %}
+{% block title %}Änderungsverlauf – {{ event.title }}{% endblock %}
+{% block content %}
+<h1>Änderungsverlauf – {{ event.title }}</h1>
+<a class="btn secondary" href="{% url 'events:event_detail' event.pk %}">Zur Veranstaltung</a>
+<p>Hier stehen Änderungen an Planungsaufgaben und stellvertretende Orga-Aktionen. Frühere Änderungen an Aufgaben wurden noch nicht protokolliert.</p>
+<ul class="planning-history">
+{% for entry in page %}<li><time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:'d.m.Y H:i' }}</time> · {% if entry.actor %}{{ entry.actor|display_name }}{% else %}Gelöschtes Konto{% endif %}<br>{{ entry.description }}</li>{% empty %}<li>Noch keine protokollierten Änderungen.</li>{% endfor %}
+</ul>
+<nav aria-label="Seiten des Änderungsverlaufs">{% if page.has_previous %}<a href="?page={{ page.previous_page_number }}">Neuere Änderungen</a>{% endif %} · Seite {{ page.number }} von {{ page.paginator.num_pages }} · {% if page.has_next %}<a href="?page={{ page.next_page_number }}">Ältere Änderungen</a>{% endif %}</nav>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% load l10n %}
+<section class="feature planning-list" id="members-section">
+    <h2>TODO-Liste {% include "events/_list_settings_link.html" %}</h2>
+    {% include "events/_list_description.html" %}
+    {% include "events/_planning_controls.html" %}
+    {% for period, label, items in todo_groups %}
+    <h3>{{ label }}</h3>
+    {% if can_manage %}<a class="btn link" href="{% url 'events:planning_item_create' event.pk %}?category=members&amp;period={{ period }}">Aufgabe hinzufügen</a>{% endif %}
+    <div class="table-scroll">
+        <table class="game-table">
+            <thead><tr><th>Aufgabe</th><th>Erledigt</th><th>Verantwortlich</th><th>Notizen</th>{% if can_manage %}<th>Aktionen</th>{% endif %}</tr></thead>
+            <tbody>{% for item in items %}
+                <tr id="planning-{{ item.pk }}" data-planning-status="{{ item.status }}" data-people="{{ item.people|lower }}"{% if item.status == 'done' %} class="todo-completed"{% endif %}>
+                    <td>{{ item.title }}</td>
+                    <td>{% if can_manage %}<form class="todo-completion-form" method="post" action="{% url 'events:planning_item_complete' event.pk item.pk %}">{% csrf_token %}<input type="hidden" name="revision" value="{{ item.revision|unlocalize }}"><label><input type="checkbox" name="done" aria-label="Erledigt: {{ item.title }}"{% if item.status == 'done' %} checked{% endif %}> Erledigt</label> <button class="btn link" type="submit">Speichern</button><span class="todo-save-feedback" role="status" aria-live="polite"></span></form>{% else %}<input type="checkbox" disabled aria-label="Erledigt: {{ item.title }}"{% if item.status == 'done' %} checked{% endif %}>{% endif %}{% if can_manage %}<a class="muted small todo-status-label planning-status-link" data-planning-edit aria-haspopup="dialog" href="{% url 'events:planning_status_edit' event.pk item.pk %}" aria-label="Status bearbeiten: {{ item.title }}">{{ item.get_status_display }}</a>{% else %}<span class="muted small todo-status-label">{{ item.get_status_display }}</span>{% endif %}</td>
+                    <td>{% if can_manage %}<a class="planning-status-link" data-planning-edit aria-haspopup="dialog" href="{% url 'events:planning_people_edit' event.pk item.pk %}" aria-label="Verantwortliche bearbeiten: {{ item.title }}">{% endif %}{% if item.people %}{{ item.people }}{% else %}<span class="pill danger">Noch offen</span>{% if item.last_done_by %} <span class="planning-last-done">zuletzt gemacht von {{ item.last_done_by }}</span>{% endif %}{% endif %}{% if can_manage %}</a>{% endif %}</td>
+                    <td>{{ item.notes|linebreaksbr }}{% if item.reference_url %}<br><a href="{{ item.reference_url }}" rel="noopener noreferrer" target="_blank">Weitere Informationen</a>{% endif %}</td>
+                    {% if can_manage %}<td class="planning-actions">{% include "events/_planning_actions.html" %}</td>{% endif %}
+                </tr>
+            {% empty %}<tr><td colspan="{% if can_manage %}5{% else %}4{% endif %}">Noch keine Einträge.</td></tr>{% endfor %}</tbody>
+        </table>
+    </div>
+    {% endfor %}
+</section>

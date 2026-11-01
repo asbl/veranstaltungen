@@ -1,0 +1,63 @@
+{% load events_extras %}
+<li id="duty-{{ duty.pk }}" class="duty-row {% if duty.signup_count == 0 %}duty-empty{% elif duty.needed_people and duty.signup_count < duty.needed_people %}duty-understaffed{% endif %}">
+    <details class="duty-details">
+        <summary>
+            <span class="duty-row-title">
+                <strong>{{ duty.title }}</strong>
+                {% if show_time %}
+                    {% if duty.day %}<span class="muted">{{ duty.day.display_label }}</span>{% endif %}
+                    {% if duty.start_time or duty.end_time %}
+                        <span class="muted">{{ duty.start_time|default:"" }}{% if duty.end_time %}–{{ duty.end_time }}{% endif %} Uhr</span>
+                    {% endif %}
+                {% endif %}
+            </span>
+            <span class="duty-row-status">
+                {% if duty.signed_up_by_me %}<span class="pill mine"><i class="fa-solid fa-check" aria-hidden="true"></i> Du bist eingetragen</span>{% endif %}
+                {% if duty.needed_people %}
+                    {% if duty.is_full %}
+                        <span class="pill success">voll ({{ duty.signup_count }}/{{ duty.needed_people }})</span>
+                    {% else %}
+                        <span class="pill {% if duty.signup_count == 0 %}danger{% else %}warn{% endif %}">{{ duty.signup_count }}/{{ duty.needed_people }} besetzt</span>
+                    {% endif %}
+                {% else %}
+                    <span class="pill">{{ duty.signup_count }} eingetragen</span>
+                {% endif %}
+                <span class="duty-toggle">Besetzung</span>
+            </span>
+        </summary>
+        <div class="duty-row-content">
+            {% if duty.description %}<div class="muted prose">{{ duty.description|simple_markdown }}</div>{% endif %}
+            <span class="muted small">(angelegt von {{ duty.created_by|display_name }})</span>
+            {% if duty.created_by == user and may_write or can_manage %}
+                <a class="btn link" href="{% url 'events:duty_edit' duty.pk %}"><i class="fa-solid fa-pen"></i>{% if duty.created_by == user %}bearbeiten{% else %}(Orga:) Bearbeiten{% endif %}</a>
+                <form class="inline" method="post" action="{% url 'events:duty_delete' duty.pk %}"
+                      onsubmit="return confirm('Achtung: Der Dienst „{{ duty.title|escapejs }}“ wird inklusive aller Eintragungen unwiderruflich gelöscht. Fortfahren?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn link"><i class="fa-solid fa-trash"></i>{% if duty.created_by == user %}löschen{% else %}(Orga:) Löschen{% endif %}</button>
+                </form>
+            {% endif %}
+            <ul class="sublist">
+                {% for signup in duty.regular_signups %}
+                    <li>
+                        {% user_link signup.user event %}
+                        {% if not signup.user_is_attending and not event.planning_enabled %}
+                            <span class="pill warn" title="Diese Person ist nicht (mehr) für die Veranstaltung angemeldet">⚠️ nicht angemeldet</span>
+                        {% endif %}
+                        {% if signup.user == user and may_write or can_manage %}
+                            <form class="inline" method="post" action="{% url 'events:duty_signup_cancel' signup.pk %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn link"><i class="fa-solid fa-user-minus"></i>austragen</button>
+                            </form>
+                        {% endif %}
+                    </li>
+                {% empty %}<li class="muted">Noch niemand eingetragen.</li>{% endfor %}
+            </ul>
+        </div>
+    </details>
+    {% if may_write %}
+        <form class="inline" method="post" action="{% action_url 'events:duty_signup' duty.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn secondary" {% if duty.is_full %}disabled{% endif %}><i class="fa-solid fa-check"></i>Eintragen</button>
+        </form>
+    {% endif %}
+</li>

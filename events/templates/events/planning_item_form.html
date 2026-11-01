@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ heading }}{% endblock %}
+{% block content %}
+<h1>{{ heading }} – {{ event.title }}</h1>
+<form method="post" class="card">
+    {% csrf_token %}
+    {% include "events/_form_error_summary.html" %}
+    {% if conflict %}<p><a href="{% url 'events:planning_item_edit' event.pk form.instance.pk %}" target="_blank" rel="noopener">Aktuellen Stand zum Vergleichen in einem neuen Tab öffnen</a>. Deine Eingaben bleiben hier erhalten.</p>{% endif %}
+    {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+    {% for field in form.basic_fields %}
+        {% include "events/_planning_form_field.html" %}
+    {% endfor %}
+    <details class="form-more-options"{% if form.advanced_has_errors %} open{% endif %}>
+        <summary>Erweiterte Optionen</summary>
+        {% for field in form.advanced_fields %}
+            {% include "events/_planning_form_field.html" %}
+        {% endfor %}
+        {% if category == 'advert' and form.instance.publication_url and form.instance.reference_url and form.instance.publication_url != form.instance.reference_url %}
+        <p>Bisheriger zusätzlicher Link: <a href="{{ form.instance.publication_url }}" target="_blank" rel="noopener noreferrer">Ansehen</a></p>
+        {% endif %}
+    </details>
+    <button type="submit" class="btn"><i class="fa-solid fa-floppy-disk"></i>{{ save_label }}</button>
+    <a class="btn secondary" href="{% url 'events:event_detail' event.pk %}#{{ category }}-section">Abbrechen</a>
+</form>
+{% endblock %}

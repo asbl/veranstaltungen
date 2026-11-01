@@ -1,0 +1,12 @@
+<div class="card">
+    <h2><a href="{% url 'events:event_detail' event.pk %}">{{ event.title }}</a></h2>
+    {% if event.location %}<p class="muted">📍 {{ event.location }}</p>{% endif %}
+    <p>
+        {% for day in event.days.all %}
+            <span class="pill">{{ day.display_label }}</span>
+        {% empty %}
+            <span class="pill">Termin noch offen</span>
+        {% endfor %}
+        {% if event.is_readonly %}<span class="pill">Beendet · schreibgeschützt</span>{% endif %}
+    </p>
+</div>
